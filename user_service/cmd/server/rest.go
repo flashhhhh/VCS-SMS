@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 	"user_service/infrastructure/postgres"
 
+	"github.com/flashhhhh/pkg/env"
 	"github.com/flashhhhh/pkg/logging"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -16,51 +17,38 @@ func main() {
 	userServiceLogPath := filepath.Join(currentPath, "logs", "user_service.log")
 	logging.InitLogger("user_service", userServiceLogPath, 10, 5, 30)
 
-	// Connect to the database
-	dsn := "host=localhost user=postgres password=yourpassword dbname=user_service port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-	db, err := postgres.ConnectDB(dsn)
+	// Load running environment variable
+	environment := env.GetEnv("RUNNING_ENVIRONMENT", "local")
+	logging.LogMessage("user_service", "Running in "+environment+" environment", "INFO")
 
-	if err != nil {
-		go func() {
-			for {
-				logging.LogMessage("user_service", "Trying to connect to the database...", "INFO")
-				db, err = postgres.ConnectDB(dsn)
-
-				if err == nil {
-					logging.LogMessage("user_service", "Connected to the database successfully", "INFO")
-					break
-				}
-
-				logging.LogMessage("user_service", "Failed to connect to the database: "+err.Error(), "ERROR")
-				logging.LogMessage("user_service", "Retrying in 10 seconds...", "INFO")
-				time.Sleep(10 * time.Second)
-			}
-		}()
+	// Load environment variables from the .env file
+	environmentFilePath := filepath.Join(currentPath, "configs", environment+".env")
+	if err := env.LoadEnv(environmentFilePath); err != nil {
+		logging.LogMessage("user_service", "Failed to load environment variables from "+environmentFilePath+": "+err.Error(), "FATAL")
+		logging.LogMessage("user_service", "Exiting the program...", "FATAL")
+		os.Exit(1)
 	} else {
-		logging.LogMessage("user_service", "Connected to the database successfully", "INFO")
+		logging.LogMessage("user_service", "Environment variables loaded successfully from "+environmentFilePath, "INFO")
 	}
 
-	// Run migrations
-	go func () {
-		for {
-			if db == nil {
-				logging.LogMessage("user_service", "Database connection is nil, retrying migration in 10 seconds...", "ERROR")
-				time.Sleep(10 * time.Second)
-				continue
-			}
+	// Connect to the database
+	dsn := "host=" + env.GetEnv("POSTGRES_HOST", "localhost") +
+		" user=" + env.GetEnv("POSTGRES_USER", "postgres") +
+		" password=" + env.GetEnv("POSTGRES_PASSWORD", "password") +
+		" dbname=" + env.GetEnv("POSTGRES_NAME", "user_service") +
+		" port=" + env.GetEnv("POSTGRES_PORT", "5432") +
+		" sslmode=disable"
+	
+	dbChan := make(chan *gorm.DB)
 
-			err = postgres.Migrate(db)
-			if err != nil {
-				// Fatal error, exit the program
-				logging.LogMessage("user_service", "Failed to run migrations: "+err.Error(), "ERROR")
-				logging.LogMessage("user_service", "Exiting the program...", "FATAL")
-				os.Exit(1)
-			}
-
-			logging.LogMessage("user_service", "Migrations completed successfully", "INFO")
-			break
-		}
+	go func() {
+		db := postgres.ConnectDB(dsn)
+		dbChan <- db
 	}()
+	db := <-dbChan
+
+	// Run migrations
+	postgres.Migrate(db)
 
 	// Start the HTTP server
 	logging.LogMessage("user_service", "Starting HTTP server on port 8080...", "INFO")
