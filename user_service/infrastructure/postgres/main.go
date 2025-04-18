@@ -14,19 +14,16 @@ import (
 func ConnectDB(dsn string) (*gorm.DB) {
 	logging.LogMessage("user_service", "Connecting to Postgres Database...", "INFO")
 	logging.LogMessage("user_service", "DSN = " + dsn, "DEBUG")
-
-	for {		
-		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-		if err != nil {
-			logging.LogMessage("user_service", "Failed to connect to Postgres Database: "+err.Error(), "ERROR")
-			logging.LogMessage("user_service", "Retrying to connect in 10 seconds...", "INFO")
-			time.Sleep(10 * time.Second)
-			continue
-		}
-
-		logging.LogMessage("user_service", "Connected to Postgres Database", "INFO")
-		return db
+	
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		logging.LogMessage("user_service", "Failed to connect to Postgres Database: "+err.Error(), "FATAL")
+		logging.LogMessage("user_service", "Exiting the program...", "FATAL")
+		os.Exit(1)
 	}
+
+	logging.LogMessage("user_service", "Connected to Postgres Database", "INFO")
+	return db
 }
 
 func Migrate(db *gorm.DB) {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/flashhhhh/pkg/env"
 	"github.com/flashhhhh/pkg/logging"
-	"gorm.io/gorm"
 )
 
 func main() {
@@ -38,16 +37,9 @@ func main() {
 		" dbname=" + env.GetEnv("POSTGRES_NAME", "user_service") +
 		" port=" + env.GetEnv("POSTGRES_PORT", "5432") +
 		" sslmode=disable"
-	
-	dbChan := make(chan *gorm.DB)
+	db := postgres.ConnectDB(dsn)
 
-	go func() {
-		db := postgres.ConnectDB(dsn)
-		dbChan <- db
-	}()
-	db := <-dbChan
-
-	// Run migrations
+	// Migrate the database
 	postgres.Migrate(db)
 
 	// Start the HTTP server
