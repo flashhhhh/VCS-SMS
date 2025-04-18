@@ -43,6 +43,8 @@ func main() {
 	postgres.Migrate(db)
 
 	// Start the HTTP server
-	logging.LogMessage("user_service", "Starting HTTP server on port 8080...", "INFO")
-	http.ListenAndServe(":8080", nil)
+	user_service_port := env.GetEnv("USER_SERVICE_PORT", "10001")
+
+	logging.LogMessage("user_service", "Starting HTTP server on port " + user_service_port + "...", "INFO")
+	http.ListenAndServe(":" + user_service_port, nil)
 }
