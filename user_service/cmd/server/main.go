@@ -4,10 +4,18 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"user_service/api/middlewares"
+	api "user_service/api/routes"
 	"user_service/infrastructure/postgres"
+	"user_service/infrastructure/redis"
+	"user_service/internal/handler"
+	"user_service/internal/repository"
+	"user_service/internal/service"
 
 	"github.com/flashhhhh/pkg/env"
 	"github.com/flashhhhh/pkg/logging"
+	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 )
 
 func main() {
@@ -42,9 +50,35 @@ func main() {
 	// Migrate the database
 	postgres.Migrate(db)
 
+	// Redis connection
+	redisAddress := env.GetEnv("REDIS_HOST", "localhost") + ":" + env.GetEnv("REDIS_PORT", "6379")
+	redis := redis.NewRedisClient(redisAddress)
+
+	// Initialize internal services
+	userRepository := repository.NewUserRepository(db, redis)
+	userService := service.NewUserService(userRepository)
+	userHandler := handler.NewUserHandler(userService)
+
 	// Start the HTTP server
 	user_service_port := env.GetEnv("USER_SERVICE_PORT", "10001")
 
-	logging.LogMessage("user_service", "Starting HTTP server on port " + user_service_port + "...", "INFO")
-	http.ListenAndServe(":" + user_service_port, nil)
+	r := mux.NewRouter()
+	api.RegisterRoutes(r, userHandler)
+	
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // Allow all origins, change this for security
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
+	}).Handler(r)
+
+	logging.LogMessage("user_service", "Starting HTTP server on port "+user_service_port, "INFO")
+	if err := http.ListenAndServe(":"+user_service_port, middlewares.CorsMiddleware(corsHandler)); err != nil {
+		logging.LogMessage("user_service", "Failed to start HTTP server: "+err.Error(), "FATAL")
+		logging.LogMessage("user_service", "Exiting the program...", "FATAL")
+		os.Exit(1)
+	}
+	logging.LogMessage("user_service", "HTTP server stopped", "INFO")
+	logging.LogMessage("user_service", "Exiting the program...", "INFO")
+	os.Exit(0)
 }
