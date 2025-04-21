@@ -7,7 +7,6 @@ import (
 	"github.com/flashhhhh/pkg/logging"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
-	"github.com/google/uuid"
 )
 
 type UserRepository interface {
@@ -32,9 +31,6 @@ func NewUserRepository(db *gorm.DB, redis *redis.Client) UserRepository {
 }
 
 func (r *userRepository) CreateUser(ctx context.Context, user *domain.User) (string, error) {
-	// Generate a unique ID for the user
-	user.ID = uuid.New().String()
-
 	err := r.db.Create(user).Error
 	if err != nil {
 		return "", err

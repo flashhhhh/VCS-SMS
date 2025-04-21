@@ -10,6 +10,7 @@ import (
 	"github.com/flashhhhh/pkg/hash"
 	"github.com/flashhhhh/pkg/jwt"
 	"github.com/flashhhhh/pkg/logging"
+	"github.com/google/uuid"
 )
 
 type UserService interface {
@@ -35,6 +36,7 @@ func (s *userService) CreateUser(ctx context.Context, username, password, name, 
 	hashedPassword := hash.HashString(password)
 
 	user := &domain.User{
+		ID : uuid.New().String(),
 		Username: username,
 		Password: hashedPassword,
 		Name:     name,
