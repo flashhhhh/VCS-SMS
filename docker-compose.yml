@@ -9,8 +9,12 @@ services:
       - ./docs/openapi.yaml:/openapi.yaml
     networks:
       - external_network
+      - user_network
 
 networks:
   external_network:
     driver: bridge
     name: external_network
+  user_network:
+    external: true
+    name: user_network

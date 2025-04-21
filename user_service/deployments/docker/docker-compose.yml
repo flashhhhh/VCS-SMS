@@ -1,0 +1,35 @@
+services:
+  user_service:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+    environment:
+      - RUNNING_ENVIRONMENT=deployment
+    volumes:
+      - ../../deployment_logs/:/app/logs/
+    ports:
+      - "80:80"
+      - "50051:50051"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - user_network
+  
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345678
+      POSTGRES_DB: user_db
+    networks:
+      - user_network
+
+  redis:
+    image: redis:latest
+    networks:
+      - user_network
+
+networks:
+  user_network:
+    driver: bridge
