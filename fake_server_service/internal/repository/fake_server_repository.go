@@ -8,8 +8,10 @@ import (
 
 type FakeServerRepository interface {
 	EnableServer(serverID int) error
+	DisableServer(serverID int) error
 	CountEnabledServers() (int, error)
 	GetServerStatus(serverID int) (bool, error)
+	DeleteServers() error
 }
 
 type fakeServerRepository struct {
@@ -24,6 +26,11 @@ func NewFakeServerRepository(redisClient *redis.Client) FakeServerRepository {
 
 func (r *fakeServerRepository) EnableServer(serverID int) error {
 	cmd := r.redisClient.SetBit(context.Background(), "enabled_servers", int64(serverID), 1)
+	return cmd.Err()
+}
+
+func (r *fakeServerRepository) DisableServer(serverID int) error {
+	cmd := r.redisClient.SetBit(context.Background(), "enabled_servers", int64(serverID), 0)
 	return cmd.Err()
 }
 
@@ -56,4 +63,9 @@ func (r *fakeServerRepository) GetServerStatus(serverID int) (bool, error) {
 	}
 
 	return status == 1, nil
+}
+
+func (r *fakeServerRepository) DeleteServers() error {
+	cmd := r.redisClient.Del(context.Background(), "enabled_servers")
+	return cmd.Err()
 }

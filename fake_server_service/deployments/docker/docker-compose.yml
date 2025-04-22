@@ -1,0 +1,15 @@
+services:
+  fake_server_service:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+    environment:
+      - RUNNING_ENVIRONMENT=deployment
+    volumes:
+      - ../../deployment_logs/:/app/logs/
+    depends_on:
+      - redis
+    network_mode: host
+  redis:
+    image: redis:latest
+    network_mode: host

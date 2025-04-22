@@ -3,14 +3,18 @@ package service
 import (
 	"errors"
 	"fake_server_service/internal/repository"
+	"net"
 	"strconv"
+	"time"
 
 	"github.com/flashhhhh/pkg/logging"
 )
 
 type FakeServerService interface {
-	TriggerNewServer(serverID int) (error)
+	CheckServer(serverID int) (bool, error)
+	HostServer(port, duration int)
 	CountRunningServers() (int, error)
+	DeleteServers() error
 }
 
 type fakeServerService struct {
@@ -23,34 +27,64 @@ func NewFakeServerService(repository *repository.FakeServerRepository) FakeServe
 	}
 }
 
-func (s *fakeServerService) TriggerNewServer(serverID int) (error) {
+func (s *fakeServerService) CheckServer(serverID int) (bool, error) {
 	logging.LogMessage("fake_server_service", "Triggering new server with ID: " + strconv.Itoa(serverID), "INFO")
 
 	enabled, err := s.repository.GetServerStatus(serverID)
 	if err != nil {
 		logging.LogMessage("fake_server_service", "Failed to get server status: "+err.Error(), "ERROR")
-		return err
+		return false, err
 	}
 
 	if enabled {
 		logging.LogMessage("fake_server_service", "Server is already enabled", "ERROR")
-		return errors.New("Server is already enabled")
+		return false, errors.New("Server is already enabled")
 	}
 
-	err = s.repository.EnableServer(serverID)
+	listener, err := net.Listen("tcp", ":"+strconv.Itoa(serverID))
 	if err != nil {
-		logging.LogMessage("fake_server_service", "Failed to enable server: "+err.Error(), "ERROR")
-		return err
+		logging.LogMessage("fake_server_service", "Failed to start server: "+err.Error(), "ERROR")
+		return false, err
 	}
+	defer listener.Close()
 
-	logging.LogMessage("fake_server_service", "Server enabled successfully", "INFO")
-	return nil
+	return true, nil
+}
+
+func (s *fakeServerService) HostServer(port, duration int) {
+	logging.LogMessage("fake_server_service", "Hosting new server on port: "+strconv.Itoa(port), "INFO")
+
+	s.repository.EnableServer(port)
+	defer func() {
+		s.repository.DisableServer(port)
+		logging.LogMessage("fake_server_service", "Server on port "+strconv.Itoa(port)+" has been disabled", "INFO")
+	}()
+	
+	listener, _ := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
+	
+	logging.LogMessage("fake_server_service", "Server will run for: "+strconv.Itoa(duration)+" seconds", "INFO")
+	time.Sleep(time.Duration(duration) * time.Second)
+
+	logging.LogMessage("fake_server_service", "Server is shutting down", "INFO")
+	listener.Close()
 }
 
 func (s *fakeServerService) CountRunningServers() (int, error) {
 	count, err := s.repository.CountEnabledServers()
 	if err != nil {
-		return 0, err
+		logging.LogMessage("fake_server_service", "Failed to count running servers: "+err.Error(), "ERROR")
+		return 1000000000, err
 	}
 	return count, nil
+}
+
+func (s *fakeServerService) DeleteServers() error {
+	err := s.repository.DeleteServers()
+	if err != nil {
+		logging.LogMessage("fake_server_service", "Failed to delete servers: "+err.Error(), "ERROR")
+		return err
+	}
+
+	logging.LogMessage("fake_server_service", "Servers deleted successfully", "INFO")
+	return nil
 }
