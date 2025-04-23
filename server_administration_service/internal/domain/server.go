@@ -8,6 +8,6 @@ type Server struct {
 	Status string `json:"status" gorm:"not null"`
 	CreatedTime time.Time `json:"created_time" gorm:"autoCreateTime"`
 	LastUpdated time.Time `json:"last_updated" gorm:"autoUpdateTime"`
-	IPAddress string `json:"ip_address" gorm:"not null"`
+	IPv4 string `json:"ip_address" gorm:"not null"`
 	Port int `json:"port" gorm:"not null"`
 }

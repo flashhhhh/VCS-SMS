@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package server_administration_service;
+
+option go_package = "./pb";
+
+service ServerAdministrationService {
+    rpc GetAllAddresses (EmptyRequest) returns (AddressesResponse);
+}
+
+message EmptyRequest {}
+
+message AddressesResponse {
+    repeated AddressInfo addresses = 1;
+}
+
+message AddressInfo {
+    string server_id = 1;
+    string address = 2;
+}

@@ -3,10 +3,12 @@ package service
 import (
 	"server_administration_service/internal/domain"
 	"server_administration_service/internal/repository"
+	"strconv"
 )
 
 type ServerService interface {
 	CreateServer(server_id, server_name, status, ipv4 string, port int) error
+	GetAllAddresses() ([][2]string, error)
 }
 
 type serverService struct {
@@ -24,7 +26,7 @@ func (s *serverService) CreateServer(server_id, server_name, status, ipv4 string
 		ServerID:   server_id,
 		ServerName: server_name,
 		Status:     status,
-		IPAddress:  ipv4,
+		IPv4:  ipv4,
 		Port: 	 port,
 	}
 
@@ -33,4 +35,19 @@ func (s *serverService) CreateServer(server_id, server_name, status, ipv4 string
 		return err
 	}
 	return nil
+}
+
+func (s *serverService) GetAllAddresses() ([][2]string, error) {
+	addresses, err := s.serverRepository.GetAllAddresses()
+	if err != nil {
+		return nil, err
+	}
+
+	var addressList [][2]string
+	for _, addressInfo := range addresses {
+		address := addressInfo.IPv4 + ":" + strconv.Itoa(addressInfo.Port)
+		addressList = append(addressList, [2]string{addressInfo.ServerID, address})
+	}
+
+	return addressList, nil
 }

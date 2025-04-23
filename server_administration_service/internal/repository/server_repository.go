@@ -2,6 +2,7 @@ package repository
 
 import (
 	"server_administration_service/internal/domain"
+	"server_administration_service/internal/dto"
 
 	"gorm.io/gorm"
 )
@@ -10,6 +11,7 @@ type ServerRepository interface {
 	CreateServer(server *domain.Server) error
 	UpdateServer(server *domain.Server) error
 	DeleteServer(serverID string) error
+	GetAllAddresses() ([]dto.ServerAddress, error)
 }
 
 type serverRepository struct {
@@ -41,4 +43,15 @@ func (r *serverRepository) DeleteServer(serverID string) error {
 		return err
 	}
 	return nil
+}
+
+func (r *serverRepository) GetAllAddresses() ([]dto.ServerAddress, error) {
+	var addresses []dto.ServerAddress
+	if err := r.db.Model(&domain.Server{}).
+		Select("server_id", "ipv4", "port").
+		Find(&addresses).Error; err != nil {
+		return nil, err
+	}
+
+	return addresses, nil
 }
