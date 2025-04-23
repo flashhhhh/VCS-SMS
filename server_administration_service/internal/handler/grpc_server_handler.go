@@ -1,4 +1,4 @@
-package grpchandler
+package handler
 
 import (
 	"context"
@@ -6,18 +6,18 @@ import (
 	"server_administration_service/pb"
 )
 
-type ServerHandler struct {
+type GRPCServerHandler struct {
 	serverService service.ServerService
 	pb.UnimplementedServerAdministrationServiceServer
 }
 
-func NewGrpcServerHandler(serverService service.ServerService) *ServerHandler {
-	return &ServerHandler{
+func NewGrpcServerHandler(serverService service.ServerService) *GRPCServerHandler {
+	return &GRPCServerHandler{
 		serverService: serverService,
 	}
 }
 
-func (grpcHandler *ServerHandler) GetAllAddresses(ctx context.Context, req *pb.EmptyRequest) (*pb.AddressesResponse, error) {
+func (grpcHandler *GRPCServerHandler) GetAllAddresses(ctx context.Context, req *pb.EmptyRequest) (*pb.AddressesResponse, error) {
 	addresses, err := grpcHandler.serverService.GetAllAddresses()
 	if err != nil {
 		return nil, err

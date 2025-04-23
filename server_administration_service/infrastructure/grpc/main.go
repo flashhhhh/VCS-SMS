@@ -2,14 +2,14 @@ package grpc
 
 import (
 	"net"
-	grpchandler "server_administration_service/internal/grpc_handler"
+	"server_administration_service/internal/handler"
 	"server_administration_service/pb"
 
 	"github.com/flashhhhh/pkg/logging"
 	"google.golang.org/grpc"
 )
 
-func StartGRPCServer(serverHandler *grpchandler.ServerHandler, port string) {
+func StartGRPCServer(serverHandler *handler.GRPCServerHandler, port string) {
 	lis, err := net.Listen("tcp", ":" + port)
 	if err != nil {
 		panic(err)

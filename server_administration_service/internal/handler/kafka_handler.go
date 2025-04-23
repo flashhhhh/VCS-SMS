@@ -1,0 +1,57 @@
+package handler
+
+import (
+	"encoding/json"
+	"server_administration_service/internal/service"
+
+	"github.com/IBM/sarama"
+	"github.com/flashhhhh/pkg/logging"
+)
+
+type ServerConsumerHandler struct {
+	serverService service.ServerService
+}
+
+func NewServerConsumerHandler(serverService service.ServerService) *ServerConsumerHandler {
+	return &ServerConsumerHandler{
+		serverService: serverService,
+	}
+}
+
+func (h ServerConsumerHandler) Setup(sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+func (h ServerConsumerHandler) Cleanup(sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+func (h ServerConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for message := range claim.Messages() {
+		logging.LogMessage("server_administration_service", "Received message: " + string(message.Value), "INFO")
+		session.MarkMessage(message, "")
+
+		// Parse the message
+		var serverMessage struct {
+			IPv4     string `json:"ipv4"`
+			ID string `json:"server_id"`
+			Status   bool   `json:"status"`
+		}
+		
+		if err := json.Unmarshal(message.Value, &serverMessage); err != nil {
+			logging.LogMessage("server_administration_service", "Error parsing message: "+err.Error(), "ERROR")
+			continue
+		}
+		
+		// Now you can use the parsed message
+		status := "Off"
+		if serverMessage.Status {
+			status = "On"
+		}
+		h.serverService.UpdateServerStatus(serverMessage.ID, status)
+
+		logging.LogMessage("server_administration_service", "Message processed: " + string(message.Value), "INFO")
+	}
+
+	return nil
+}

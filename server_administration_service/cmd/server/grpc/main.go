@@ -5,12 +5,13 @@ import (
 	"path/filepath"
 	"server_administration_service/infrastructure/grpc"
 	"server_administration_service/infrastructure/postgres"
-	grpchandler "server_administration_service/internal/grpc_handler"
+	"server_administration_service/internal/handler"
 	"server_administration_service/internal/repository"
 	"server_administration_service/internal/service"
 
 	"github.com/flashhhhh/pkg/env"
 	"github.com/flashhhhh/pkg/logging"
+	"github.com/flashhhhh/pkg/kafka"
 )
 
 func main() {
@@ -45,10 +46,25 @@ func main() {
 	// Migrate the database
 	postgres.Migrate(db)
 
+	// Initialize Kafka Consumer Group
+	brokers := []string{"localhost:9092"}
+	groupID := "server_administration_group"
+	topics := []string{"healthcheck_topic"}
+
+	consumerGroup, err := kafka.NewKafkaConsumerGroup(brokers, groupID, topics)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Failed to connect to Kafka: " + err.Error(), "FATAL")
+		logging.LogMessage("server_administration_service", "Exiting the program...", "FATAL")
+		os.Exit(1)
+	}
+
 	// Initialize internal services
 	serverRepository := repository.NewServerRepository(db)
 	serverService := service.NewServerService(serverRepository)
-	serverHandler := grpchandler.NewGrpcServerHandler(serverService)
+	serverHandler := handler.NewGrpcServerHandler(serverService)
+
+	kafkaHandler := handler.NewServerConsumerHandler(serverService)
+	consumerGroup.StartConsuming(kafkaHandler)
 
 	// Start gRPC server
 	grpcPort := env.GetEnv("SERVER_GRPC_ADMINISTRATION_PORT", "50051")

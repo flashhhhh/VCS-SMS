@@ -11,6 +11,7 @@ type ServerRepository interface {
 	CreateServer(server *domain.Server) error
 	UpdateServer(server *domain.Server) error
 	DeleteServer(serverID string) error
+	UpdateServerStatus(serverID string, status string) error
 	GetAllAddresses() ([]dto.ServerAddress, error)
 }
 
@@ -40,6 +41,15 @@ func (r *serverRepository) UpdateServer(server *domain.Server) error {
 
 func (r *serverRepository) DeleteServer(serverID string) error {
 	if err := r.db.Delete(&domain.Server{}, serverID).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *serverRepository) UpdateServerStatus(serverID string, status string) error {
+	if err := r.db.Model(&domain.Server{}).
+		Where("server_id = ?", serverID).
+		Update("status", status).Error; err != nil {
 		return err
 	}
 	return nil

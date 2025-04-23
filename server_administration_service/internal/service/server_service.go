@@ -8,6 +8,8 @@ import (
 
 type ServerService interface {
 	CreateServer(server_id, server_name, status, ipv4 string, port int) error
+	
+	UpdateServerStatus(server_id, status string) error
 	GetAllAddresses() ([][2]string, error)
 }
 
@@ -35,6 +37,11 @@ func (s *serverService) CreateServer(server_id, server_name, status, ipv4 string
 		return err
 	}
 	return nil
+}
+
+func (s *serverService) UpdateServerStatus(server_id, status string) error {
+	err := s.serverRepository.UpdateServerStatus(server_id, status)
+	return err
 }
 
 func (s *serverService) GetAllAddresses() ([][2]string, error) {

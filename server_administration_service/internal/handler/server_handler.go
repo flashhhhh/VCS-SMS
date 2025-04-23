@@ -36,9 +36,11 @@ func (h *serverHandler) CreateServer(w http.ResponseWriter, r *http.Request) {
 	serverName, _ := requestBody["server_name"].(string)
 	status, _ := requestBody["status"].(string)
 	ipAddress, _ := requestBody["ipv4"].(string)
-	port, ok := requestBody["port"].(int)
-	if !ok {
-		port = 80 // Default value if port is not provided
+	portFloat, ok := requestBody["port"].(float64)
+
+	port := 80 // default port
+	if ok {
+		port = int(portFloat)
 	}
 	
 	err = h.service.CreateServer(serverID, serverName, status, ipAddress, port)
