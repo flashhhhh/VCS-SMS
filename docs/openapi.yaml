@@ -5,7 +5,10 @@ info:
   version: 1.0.0
 servers:
   - url: http://localhost:10001
-    description: Local server
+    description: Local user server
+  - url: http://localhost:10002
+    description: Local server administration server
+  
   - url: http://localhost:80
     description: Deployment server
 paths:
@@ -218,6 +221,74 @@ paths:
                       type: string
                       enum: [sudo, admin, user]
                       example: user
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Internal server error
+
+  /server/create:
+    post:
+      summary: Create a new server
+      description: Creates a new server with the provided details.
+      requestBody:
+        description: Server information
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                server_id:
+                  type: string
+                  example: "1"
+                server_name:
+                  type: string
+                  example: "Server 1"
+                status:
+                  type: string
+                  example: "On"
+                ipv4:
+                  type: string
+                  format: ipv4
+                  example: ""
+                port:
+                  type: int
+                  example: 80
+              required:
+                - server_id
+                - server_name
+                - status
+                - ipv4
+
+      responses:
+        '201':
+          description: Server created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Server created successfully
+                  serverID:
+                    type: string
+                    example: 12345
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid input data
         '500':
           description: Internal server error
           content:
