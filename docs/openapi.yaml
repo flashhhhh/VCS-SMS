@@ -299,3 +299,56 @@ paths:
                   error:
                     type: string
                     example: Internal server error
+  /server/delete:
+    delete:
+      summary: Delete a server
+      description: Deletes a server with the provided ID.
+      parameters:
+        - name: server_id
+          in: query
+          required: true
+          description: The ID of the server to delete
+          schema:
+            type: string
+            example: "1"
+      responses:
+          '200':
+            description: Server deleted successfully
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: Server deleted successfully
+          '400': 
+            description: Bad request
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: Invalid server ID
+          '404':
+            description: Server not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: Server not found
+          '500':
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: Internal server error

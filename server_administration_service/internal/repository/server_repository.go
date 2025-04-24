@@ -11,6 +11,7 @@ type ServerRepository interface {
 	CreateServer(server *domain.Server) error
 	UpdateServer(server *domain.Server) error
 	DeleteServer(serverID string) error
+	
 	UpdateServerStatus(serverID string, status string) error
 	GetAllAddresses() ([]dto.ServerAddress, error)
 }

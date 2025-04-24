@@ -10,6 +10,7 @@ import (
 
 type ServerHandler interface {
 	CreateServer(w http.ResponseWriter, r *http.Request)
+	DeleteServer(w http.ResponseWriter, r *http.Request)
 }
 
 type serverHandler struct {
@@ -53,4 +54,24 @@ func (h *serverHandler) CreateServer(w http.ResponseWriter, r *http.Request) {
 	logging.LogMessage("server_administration_service", "Server created successfully with ID: "+serverID, "INFO")
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte("Server created successfully"))
+}
+
+func (h *serverHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
+	serverID := r.URL.Query().Get("server_id")
+	if serverID == "" {
+		logging.LogMessage("server_administration_service", "Server ID is required for deletion", "ERROR")
+		http.Error(w, "Server ID is required", http.StatusBadRequest)
+		return
+	}
+
+	err := h.service.DeleteServer(serverID)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Invalid server ID: "+serverID+" - "+err.Error(), "ERROR")
+		http.Error(w, "Invalid server ID", http.StatusNotFound)
+		return
+	}
+
+	logging.LogMessage("server_administration_service", "Server deleted successfully with ID: "+serverID, "INFO")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Server deleted successfully"))
 }

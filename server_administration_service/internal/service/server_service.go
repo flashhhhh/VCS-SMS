@@ -8,6 +8,7 @@ import (
 
 type ServerService interface {
 	CreateServer(server_id, server_name, status, ipv4 string, port int) error
+	DeleteServer(server_id string) error
 	
 	UpdateServerStatus(server_id, status string) error
 	GetAllAddresses() ([][2]string, error)
@@ -37,6 +38,11 @@ func (s *serverService) CreateServer(server_id, server_name, status, ipv4 string
 		return err
 	}
 	return nil
+}
+
+func (s *serverService) DeleteServer(server_id string) error {
+	err := s.serverRepository.DeleteServer(server_id)
+	return err
 }
 
 func (s *serverService) UpdateServerStatus(server_id, status string) error {
