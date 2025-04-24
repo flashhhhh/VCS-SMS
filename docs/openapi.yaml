@@ -299,6 +299,70 @@ paths:
                   error:
                     type: string
                     example: Internal server error
+  /server/update:
+    put:
+      summary: Update server information
+      description: Updates the information of an existing server.
+      parameters:
+        - name: server_id
+          in: query
+          required: true
+          description: The ID of the server to update
+          schema:
+            type: string
+            example: "1"
+      requestBody:
+        description: Updated server information
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                server_name:
+                  type: string
+                  example: "Updated Server 1"
+                status:
+                  type: string
+                  example: "Off"
+                ipv4:
+                  type: string
+                  format: ipv4
+                  example: ""
+                port:
+                  type: int
+                  example: 8080
+      responses:
+        '200':
+          description: Server updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Server updated successfully
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid input data
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Internal server error
+
   /server/delete:
     delete:
       summary: Delete a server

@@ -9,7 +9,7 @@ import (
 
 type ServerRepository interface {
 	CreateServer(server *domain.Server) error
-	UpdateServer(server *domain.Server) error
+	UpdateServer(server_id string, updatedData map[string]interface{}) error
 	DeleteServer(serverID string) error
 	
 	UpdateServerStatus(serverID string, status string) error
@@ -33,9 +33,11 @@ func (r *serverRepository) CreateServer(server *domain.Server) error {
 	return nil
 }
 
-func (r *serverRepository) UpdateServer(server *domain.Server) error {
-	if err := r.db.Save(server).Error; err != nil {
-		return err
+func (r *serverRepository) UpdateServer(serverID string, updatedData map[string]interface{}) error {
+	if err := r.db.Model(&domain.Server{}).
+		Where("server_id = ?", serverID).
+		Updates(updatedData).Error; err != nil {
+			return err
 	}
 	return nil
 }

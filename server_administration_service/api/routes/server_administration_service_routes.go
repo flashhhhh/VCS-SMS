@@ -8,5 +8,6 @@ import (
 
 func RegisterRoutes(r *mux.Router, serverHandler handler.ServerHandler) {
 	r.HandleFunc("/server/create", serverHandler.CreateServer).Methods("POST")
+	r.HandleFunc("/server/update", serverHandler.UpdateServer).Methods("PUT")
 	r.HandleFunc("/server/delete", serverHandler.DeleteServer).Methods("DELETE")
 }
