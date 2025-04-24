@@ -416,3 +416,48 @@ paths:
                     error:
                       type: string
                       example: Internal server error
+  /server/import:
+    post:
+      summary: Import server data
+      description: Imports server data from a file.
+      requestBody:
+        description: File containing server data
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                servers_file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Server data imported successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Server data imported successfully
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid file format
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Internal server error

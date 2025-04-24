@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"server_administration_service/internal/service"
 
@@ -12,6 +13,7 @@ type ServerHandler interface {
 	CreateServer(w http.ResponseWriter, r *http.Request)
 	UpdateServer(w http.ResponseWriter, r *http.Request)
 	DeleteServer(w http.ResponseWriter, r *http.Request)
+	ImportServers(w http.ResponseWriter, r *http.Request)
 }
 
 type serverHandler struct {
@@ -124,4 +126,34 @@ func (h *serverHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
 	logging.LogMessage("server_administration_service", "Server deleted successfully with ID: "+serverID, "INFO")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Server deleted successfully"))
+}
+
+func (h *serverHandler) ImportServers(w http.ResponseWriter, r *http.Request) {
+	serversFile, _, err := r.FormFile("servers_file")
+
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Failed to get file from request: "+err.Error(), "ERROR")
+		http.Error(w, "Failed to get file from request", http.StatusBadRequest)
+		return
+	}
+	defer serversFile.Close()
+
+	var buf []byte
+	buf, err = io.ReadAll(serversFile)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Failed to read file: "+err.Error(), "ERROR")
+		http.Error(w, "Failed to read file", http.StatusInternalServerError)
+		return
+	}
+
+	err = h.service.ImportServers(buf)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Failed to import servers: "+err.Error(), "ERROR")
+		http.Error(w, "Failed to import servers", http.StatusInternalServerError)
+		return
+	}
+
+	logging.LogMessage("server_administration_service", "Servers imported successfully", "INFO")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Servers imported successfully"))
 }

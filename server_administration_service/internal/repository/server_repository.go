@@ -5,10 +5,12 @@ import (
 	"server_administration_service/internal/dto"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type ServerRepository interface {
 	CreateServer(server *domain.Server) error
+	CreateServers(servers []domain.Server) error
 	UpdateServer(server_id string, updatedData map[string]interface{}) error
 	DeleteServer(serverID string) error
 	
@@ -28,6 +30,13 @@ func NewServerRepository(db *gorm.DB) ServerRepository {
 
 func (r *serverRepository) CreateServer(server *domain.Server) error {
 	if err := r.db.Create(server).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *serverRepository) CreateServers(servers []domain.Server) error {
+	if err := r.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&servers).Error; err != nil {
 		return err
 	}
 	return nil
