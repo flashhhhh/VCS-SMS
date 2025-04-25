@@ -150,6 +150,23 @@ func (r *serverRepository) UpdateServer(serverID string, updatedData map[string]
 		Updates(updatedData).Error; err != nil {
 			return err
 	}
+
+	// Get the server's id
+	var server domain.Server
+	if err := r.db.Where("server_id = ?", serverID).First(&server).Error; err != nil {
+		return err
+	}
+
+	// Update Redis bitmap
+	statusValue := 0
+	if updatedData["status"] == "On" {
+		statusValue = 1
+	}
+
+	if err := r.redis.SetBit(context.Background(), "server_status", int64(server.ID), statusValue).Err(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
