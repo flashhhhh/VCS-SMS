@@ -35,6 +35,6 @@ func main() {
 		panic(err)
 	}
 	for _, address := range addressesResponse.Addresses {
-		println("Server ID:", address.ServerId, ", Address:", address.Address)
+		println("Server ID:", address.Id, ", Address:", address.Address)
 	}
 }

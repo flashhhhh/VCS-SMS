@@ -19,7 +19,7 @@ type ServerRepository interface {
 	UpdateServer(server_id string, updatedData map[string]interface{}) error
 	DeleteServer(serverID string) error
 	
-	UpdateServerStatus(serverID string, status string) error
+	UpdateServerStatus(id int, status string) error
 	GetAllAddresses() ([]dto.ServerAddress, error)
 }
 
@@ -190,9 +190,9 @@ func (r *serverRepository) DeleteServer(serverID string) error {
 	return nil
 }
 
-func (r *serverRepository) UpdateServerStatus(serverID string, status string) error {
+func (r *serverRepository) UpdateServerStatus(id int, status string) error {
 	if err := r.db.Model(&domain.Server{}).
-		Where("server_id = ?", serverID).
+		Where("id = ?", id).
 		Update("status", status).Error; err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (r *serverRepository) UpdateServerStatus(serverID string, status string) er
 func (r *serverRepository) GetAllAddresses() ([]dto.ServerAddress, error) {
 	var addresses []dto.ServerAddress
 	if err := r.db.Model(&domain.Server{}).
-		Select("server_id", "ipv4", "port").
+		Select("id", "ipv4", "port").
 		Find(&addresses).Error; err != nil {
 		return nil, err
 	}

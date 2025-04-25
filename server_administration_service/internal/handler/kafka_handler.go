@@ -34,7 +34,7 @@ func (h ServerConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession,
 		// Parse the message
 		var serverMessage struct {
 			IPv4     string `json:"ipv4"`
-			ID string `json:"server_id"`
+			ID int `json:"id"`
 			Status   bool   `json:"status"`
 		}
 		

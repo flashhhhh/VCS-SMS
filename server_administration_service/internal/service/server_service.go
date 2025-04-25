@@ -20,8 +20,8 @@ type ServerService interface {
 	ImportServers(buf []byte) error
 	ExportServers(serverFilter *dto.ServerFilter, from, to int, sortedColumn string, order string) ([]byte, error)
 	
-	UpdateServerStatus(server_id, status string) error
-	GetAllAddresses() ([][2]string, error)
+	UpdateServerStatus(id int, status string) error
+	GetAllAddresses() ([]dto.ServerAddress, error)
 }
 
 type serverService struct {
@@ -68,24 +68,18 @@ func (s *serverService) DeleteServer(server_id string) error {
 	return err
 }
 
-func (s *serverService) UpdateServerStatus(server_id, status string) error {
-	err := s.serverRepository.UpdateServerStatus(server_id, status)
+func (s *serverService) UpdateServerStatus(id int, status string) error {
+	err := s.serverRepository.UpdateServerStatus(id, status)
 	return err
 }
 
-func (s *serverService) GetAllAddresses() ([][2]string, error) {
+func (s *serverService) GetAllAddresses() ([]dto.ServerAddress, error) {
 	addresses, err := s.serverRepository.GetAllAddresses()
 	if err != nil {
 		return nil, err
 	}
 
-	var addressList [][2]string
-	for _, addressInfo := range addresses {
-		address := addressInfo.IPv4 + ":" + strconv.Itoa(addressInfo.Port)
-		addressList = append(addressList, [2]string{addressInfo.ServerID, address})
-	}
-
-	return addressList, nil
+	return addresses, nil
 }
 
 func (s *serverService) ImportServers(buf []byte) error {

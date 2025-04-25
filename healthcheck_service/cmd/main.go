@@ -8,6 +8,7 @@ import (
 	"healthcheck_service/pb"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/flashhhhh/pkg/env"
@@ -44,22 +45,22 @@ func main() {
 		}							
 		for _, address := range addressesResponse.Addresses {
 			go func (address *pb.AddressInfo) {
-				serverID := address.ServerId
+				ID := int(address.Id)
 				serverAddress := address.Address
 				
 				// Check if the server is On or Off by pinging the address
-				logging.LogMessage("healthcheck_service", "Pinging server "+serverID+" at address "+serverAddress, "INFO")
+				logging.LogMessage("healthcheck_service", "Pinging server " + strconv.Itoa(ID) + " at address "+serverAddress, "INFO")
 				status := healthcheck.IsHostUp(serverAddress)
 
 				statusText := "OFF"
 				if status {
 					statusText = "ON"
 				}
-				logging.LogMessage("healthcheck_service", "Server "+serverID+" is "+statusText, "INFO")
+				logging.LogMessage("healthcheck_service", "Server " + strconv.Itoa(ID) + " is "+statusText, "INFO")
 				
 				// Send the health check result to Kafka
 				data := map[string]interface{}{
-					"server_id":   serverID,
+					"id":   ID,
 					"ipv4": serverAddress,
 					"status":      status,
 				}
@@ -71,7 +72,7 @@ func main() {
 					panic(err)
 				}
 
-				logging.LogMessage("healthcheck_service", "Sent health check result of server " + serverID + " to Kafka topic "+topic, "INFO")
+				logging.LogMessage("healthcheck_service", "Sent health check result of server " + strconv.Itoa(ID) + " to Kafka topic "+topic, "INFO")
 			}(address)
 		}
 

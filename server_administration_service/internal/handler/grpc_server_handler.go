@@ -4,6 +4,7 @@ import (
 	"context"
 	"server_administration_service/internal/service"
 	"server_administration_service/pb"
+	"strconv"
 )
 
 type GRPCServerHandler struct {
@@ -25,9 +26,14 @@ func (grpcHandler *GRPCServerHandler) GetAllAddresses(ctx context.Context, req *
 
 	addressInfo := make([]*pb.AddressInfo, len(addresses))
 	for i, address := range addresses {
+		addressLink := address.IPv4
+		if address.Port >= 0 {
+			addressLink += ":" + strconv.Itoa(address.Port)
+		}
+
 		addressInfo[i] = &pb.AddressInfo{
-			ServerId: address[0],
-			Address:   address[1],
+			Id:  int64(address.ID),
+			Address: addressLink,
 		}
 	}
 
