@@ -7,6 +7,7 @@ import (
 	"server_administration_service/internal/dto"
 	"server_administration_service/internal/service"
 	"strconv"
+	"time"
 
 	"github.com/flashhhhh/pkg/logging"
 )
@@ -17,6 +18,7 @@ type ServerHandler interface {
 	UpdateServer(w http.ResponseWriter, r *http.Request)
 	DeleteServer(w http.ResponseWriter, r *http.Request)
 	ImportServers(w http.ResponseWriter, r *http.Request)
+	ExportServers(w http.ResponseWriter, r *http.Request)
 }
 
 type serverHandler struct {
@@ -115,7 +117,6 @@ func (h *serverHandler) ViewServers(w http.ResponseWriter, r *http.Request) {
 	} else {
 		serverFilter.Port = -1
 	}
-
 
 	servers, err := h.service.ViewServers(&serverFilter, from, to, sortedColumn, order)
 	if err != nil {
@@ -235,4 +236,75 @@ func (h *serverHandler) ImportServers(w http.ResponseWriter, r *http.Request) {
 	logging.LogMessage("server_administration_service", "Servers imported successfully", "INFO")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Servers imported successfully"))
+}
+
+func (h *serverHandler) ExportServers(w http.ResponseWriter, r *http.Request) {
+	fromStr := r.URL.Query().Get("from")
+	from, err := strconv.Atoi(fromStr)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Invalid 'from' query parameter: "+err.Error(), "ERROR")
+		logging.LogMessage("server_administration_service", "from: "+fromStr, "DEBUG")
+		http.Error(w, "Invalid 'from' query parameter", http.StatusBadRequest)
+		return
+	}
+
+	toStr := r.URL.Query().Get("to")
+	to, err := strconv.Atoi(toStr)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Invalid 'to' query parameter: "+err.Error(), "ERROR")
+		logging.LogMessage("server_administration_service", "to: "+toStr, "DEBUG")
+		http.Error(w, "Invalid 'to' query parameter", http.StatusBadRequest)
+		return
+	}
+
+	sortedColumn := r.URL.Query().Get("sort_column")
+	order := r.URL.Query().Get("sort_order")
+
+	serverID := r.URL.Query().Get("server_id")
+	serverName := r.URL.Query().Get("server_name")
+	status := r.URL.Query().Get("status")
+	ipv4 := r.URL.Query().Get("ipv4")
+	portStr := r.URL.Query().Get("port")
+
+	serverFilter := dto.ServerFilter{}
+
+	if serverID != "" {
+		serverFilter.ServerID = serverID
+	}
+	if serverName != "" {
+		serverFilter.ServerName = serverName
+	}
+	if status != "" {
+		serverFilter.Status = status
+	}
+	if ipv4 != "" {
+		serverFilter.IPv4 = ipv4
+	}
+	if portStr != "" {
+		port, err := strconv.Atoi(portStr)
+		if err != nil {
+			logging.LogMessage("server_administration_service", "Invalid port in query params", "ERROR")
+			http.Error(w, "Invalid port", http.StatusBadRequest)
+			return
+		}
+		serverFilter.Port = port
+	} else {
+		serverFilter.Port = -1
+	}
+
+	serverBuf, err := h.service.ExportServers(&serverFilter, from, to, sortedColumn, order)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Failed to export servers: "+err.Error(), "ERROR")
+		http.Error(w, "Failed to export servers", http.StatusInternalServerError)
+		return
+	}
+
+	filename := "servers_" + time.Now().Format("2006-01-02_15-04-05") + ".xlsx"
+
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	w.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
+	w.Header().Set("File-Name", filename)
+	w.WriteHeader(http.StatusOK)
+	w.Write(serverBuf)
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"server_administration_service/internal/domain"
 	"server_administration_service/internal/dto"
 	"server_administration_service/internal/repository"
@@ -17,6 +18,7 @@ type ServerService interface {
 	UpdateServer(server_id string, updatedData map[string]interface{}) error
 	DeleteServer(server_id string) error
 	ImportServers(buf []byte) error
+	ExportServers(serverFilter *dto.ServerFilter, from, to int, sortedColumn string, order string) ([]byte, error)
 	
 	UpdateServerStatus(server_id, status string) error
 	GetAllAddresses() ([][2]string, error)
@@ -136,4 +138,40 @@ func (s *serverService) ImportServers(buf []byte) error {
 	s.serverRepository.CreateServers(servers)
 	logging.LogMessage("server_administration_service", "Servers imported successfully", "INFO")
 	return nil
+}
+
+func (s *serverService) ExportServers(serverFilter *dto.ServerFilter, from, to int, sortedColumn string, order string) ([]byte, error) {
+	servers, err := s.serverRepository.ViewServers(serverFilter, from, to, sortedColumn, order)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Failed to export servers: "+err.Error(), "ERROR")
+		return nil, err
+	}
+
+	f := excelize.NewFile()
+	sheet := "Servers"
+	f.SetSheetName("Sheet1", sheet)
+
+	headers := []string{"Server ID", "Server Name", "Status", "IPv4", "Port"}
+	for i, header := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheet, cell, header)
+	}
+
+	for i, server := range servers {
+		f.SetCellValue(sheet, "A"+strconv.Itoa(i+2), server.ServerID)
+		f.SetCellValue(sheet, "B"+strconv.Itoa(i+2), server.ServerName)
+		f.SetCellValue(sheet, "C"+strconv.Itoa(i+2), server.Status)
+		f.SetCellValue(sheet, "D"+strconv.Itoa(i+2), server.IPv4)
+		f.SetCellValue(sheet, "E"+strconv.Itoa(i+2), server.Port)
+	}
+
+	var buf bytes.Buffer
+	err = f.Write(&buf)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Failed to write Excel file to buffer: "+err.Error(), "ERROR")
+		return nil, err
+	}
+
+	logging.LogMessage("server_administration_service", "Servers exported successfully", "INFO")
+	return buf.Bytes(), nil
 }
