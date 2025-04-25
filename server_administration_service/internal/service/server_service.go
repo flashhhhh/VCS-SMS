@@ -2,6 +2,7 @@ package service
 
 import (
 	"server_administration_service/internal/domain"
+	"server_administration_service/internal/dto"
 	"server_administration_service/internal/repository"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 type ServerService interface {
 	CreateServer(server_id, server_name, status, ipv4 string, port int) error
+	ViewServers(serverFilter *dto.ServerFilter, from, to int, sortedColumn string, order string) ([]domain.Server, error)
 	UpdateServer(server_id string, updatedData map[string]interface{}) error
 	DeleteServer(server_id string) error
 	ImportServers(buf []byte) error
@@ -44,6 +46,14 @@ func (s *serverService) CreateServer(server_id, server_name, status, ipv4 string
 		return err
 	}
 	return nil
+}
+
+func (s *serverService) ViewServers(serverFilter *dto.ServerFilter, from, to int, sortedColumn string, order string) ([]domain.Server, error) {
+	servers, err := s.serverRepository.ViewServers(serverFilter, from, to, sortedColumn, order)
+	if err != nil {
+		return nil, err
+	}
+	return servers, nil
 }
 
 func (s *serverService) UpdateServer(server_id string, updatedData map[string]interface{}) error {

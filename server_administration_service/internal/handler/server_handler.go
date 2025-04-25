@@ -4,13 +4,16 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"server_administration_service/internal/dto"
 	"server_administration_service/internal/service"
+	"strconv"
 
 	"github.com/flashhhhh/pkg/logging"
 )
 
 type ServerHandler interface {
 	CreateServer(w http.ResponseWriter, r *http.Request)
+	ViewServers(w http.ResponseWriter, r *http.Request)
 	UpdateServer(w http.ResponseWriter, r *http.Request)
 	DeleteServer(w http.ResponseWriter, r *http.Request)
 	ImportServers(w http.ResponseWriter, r *http.Request)
@@ -57,6 +60,82 @@ func (h *serverHandler) CreateServer(w http.ResponseWriter, r *http.Request) {
 	logging.LogMessage("server_administration_service", "Server created successfully with ID: "+serverID, "INFO")
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte("Server created successfully"))
+}
+
+func (h *serverHandler) ViewServers(w http.ResponseWriter, r *http.Request) {
+	fromStr := r.URL.Query().Get("from")
+	from, err := strconv.Atoi(fromStr)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Invalid 'from' query parameter: "+err.Error(), "ERROR")
+		logging.LogMessage("server_administration_service", "from: "+fromStr, "DEBUG")
+		http.Error(w, "Invalid 'from' query parameter", http.StatusBadRequest)
+		return
+	}
+
+	toStr := r.URL.Query().Get("to")
+	to, err := strconv.Atoi(toStr)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Invalid 'to' query parameter: "+err.Error(), "ERROR")
+		logging.LogMessage("server_administration_service", "to: "+toStr, "DEBUG")
+		http.Error(w, "Invalid 'to' query parameter", http.StatusBadRequest)
+		return
+	}
+
+	sortedColumn := r.URL.Query().Get("sort_column")
+	order := r.URL.Query().Get("sort_order")
+
+	serverID := r.URL.Query().Get("server_id")
+	serverName := r.URL.Query().Get("server_name")
+	status := r.URL.Query().Get("status")
+	ipv4 := r.URL.Query().Get("ipv4")
+	portStr := r.URL.Query().Get("port")
+
+	serverFilter := dto.ServerFilter{}
+
+	if serverID != "" {
+		serverFilter.ServerID = serverID
+	}
+	if serverName != "" {
+		serverFilter.ServerName = serverName
+	}
+	if status != "" {
+		serverFilter.Status = status
+	}
+	if ipv4 != "" {
+		serverFilter.IPv4 = ipv4
+	}
+	if portStr != "" {
+		port, err := strconv.Atoi(portStr)
+		if err != nil {
+			logging.LogMessage("server_administration_service", "Invalid port in query params", "ERROR")
+			http.Error(w, "Invalid port", http.StatusBadRequest)
+			return
+		}
+		serverFilter.Port = port
+	} else {
+		serverFilter.Port = -1
+	}
+
+
+	servers, err := h.service.ViewServers(&serverFilter, from, to, sortedColumn, order)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Failed to view servers: "+err.Error(), "ERROR")
+		http.Error(w, "Failed to view servers", http.StatusInternalServerError)
+		return
+	}
+
+	logging.LogMessage("server_administration_service", "Servers retrieved successfully", "INFO")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	response, err := json.Marshal(servers)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Failed to marshal servers response: "+err.Error(), "ERROR")
+		http.Error(w, "Failed to process servers data", http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(response)
 }
 
 func (h *serverHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {

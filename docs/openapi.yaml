@@ -257,7 +257,7 @@ paths:
                   format: ipv4
                   example: ""
                 port:
-                  type: int
+                  type: integer
                   example: 80
               required:
                 - server_id
@@ -299,6 +299,124 @@ paths:
                   error:
                     type: string
                     example: Internal server error
+  
+  /server/view:
+    get:
+      summary: View server information
+      description: Retrieves information about filtered servers.
+      parameters:
+        - name: from
+          in: query
+          required: true
+          description: The starting point for filtering servers
+          schema:
+            type: string
+            example: 0
+        - name: to
+          in: query
+          required: true
+          description: The endpoint for filtering servers
+          schema:
+            type: string
+            example: 10
+        - name: sort_column
+          in: query
+          required: true
+          description: The column to sort the servers by
+          schema:
+            type: string
+            example: server_id
+        - name: sort_order
+          in: query
+          required: true
+          description: The order to sort the servers (asc or desc)
+          schema:
+            type: string
+            example: asc
+        - name: server_id
+          in: query
+          required: false
+          description: The ID of the server to retrieve
+          schema:
+            type: string
+            example: "1"
+        - name: server_name
+          in: query
+          required: false
+          description: The name of the server to retrieve
+          schema:
+            type: string
+            example: "Server 1"
+        - name: status
+          in: query
+          required: false
+          description: The status of the server to retrieve
+          schema:
+            type: string
+            example: "On"
+        - name: ipv4
+          in: query
+          required: false
+          description: The IPv4 address of the server to retrieve
+          schema:
+            type: string
+            format: ipv4
+            example: "192.168.1.1"
+        - name: port
+          in: query
+          required: false
+          description: The port of the server to retrieve
+          schema:
+            type: integer
+            example: 80
+      responses:
+        '200':
+          description: Servers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    server_id:
+                      type: string
+                      example: "1"
+                    server_name:
+                      type: string
+                      example: "Server 1"
+                    status:
+                      type: string
+                      example: "On"
+                    ipv4:
+                      type: string
+                      format: ipv4
+                      example: "192.168.1.1"
+                    port:
+                      type: integer
+                      example: 80
+        '404':
+          description: No servers found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: No servers found
+        
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Internal server error
+
   /server/update:
     put:
       summary: Update server information
@@ -329,7 +447,7 @@ paths:
                   format: ipv4
                   example: ""
                 port:
-                  type: int
+                  type: integer
                   example: 8080
       responses:
         '200':

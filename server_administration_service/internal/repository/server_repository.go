@@ -11,6 +11,7 @@ import (
 type ServerRepository interface {
 	CreateServer(server *domain.Server) error
 	CreateServers(servers []domain.Server) error
+	ViewServers(serverFilter *dto.ServerFilter, from, to int, sortedColumn string, order string) ([]domain.Server, error)
 	UpdateServer(server_id string, updatedData map[string]interface{}) error
 	DeleteServer(serverID string) error
 	
@@ -33,6 +34,41 @@ func (r *serverRepository) CreateServer(server *domain.Server) error {
 		return err
 	}
 	return nil
+}
+
+func (r *serverRepository) ViewServers(serverFilter *dto.ServerFilter, from, to int, sortedColumn string, order string) ([]domain.Server, error) {
+	var servers []domain.Server
+	query := r.db.Model(&domain.Server{})
+
+	if serverFilter.ServerID != "" {
+		query = query.Where("server_id = ?", serverFilter.ServerID)
+	}
+
+	if serverFilter.ServerName != "" {	
+		query = query.Where("server_name LIKE ?", "%"+serverFilter.ServerName+"%")
+	}
+
+	if serverFilter.Status != "" {
+		query = query.Where("status = ?", serverFilter.Status)
+	}
+
+	if serverFilter.IPv4 != "" {
+		query = query.Where("ipv4 = ?", serverFilter.IPv4)
+	}
+
+	if serverFilter.Port >= 0 {
+		query = query.Where("port = ?", serverFilter.Port)
+	}
+
+	query = query.Where("id BETWEEN ? AND ?", from, to)
+
+	// sortedColumn is mandatory
+	err := query.Order(sortedColumn + " " + order).Find(&servers).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return servers, nil
 }
 
 func (r *serverRepository) CreateServers(servers []domain.Server) error {
