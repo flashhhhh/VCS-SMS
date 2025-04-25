@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/signal"
 	"path/filepath"
 	"server_administration_service/infrastructure/grpc"
 	"server_administration_service/infrastructure/postgres"
@@ -9,6 +10,7 @@ import (
 	"server_administration_service/internal/handler"
 	"server_administration_service/internal/repository"
 	"server_administration_service/internal/service"
+	"syscall"
 
 	"github.com/flashhhhh/pkg/env"
 	"github.com/flashhhhh/pkg/kafka"
@@ -76,5 +78,13 @@ func main() {
 	grpcPort := env.GetEnv("SERVER_GRPC_ADMINISTRATION_PORT", "50051")
 	
 	logging.LogMessage("server_administration_service", "Starting gRPC server on port "+grpcPort, "INFO")
-	grpc.StartGRPCServer(serverHandler, grpcPort)
+	go grpc.StartGRPCServer(serverHandler, grpcPort)
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	<-sigs // Wait for interrupt
+	logging.LogMessage("server_administration_service", "Shutting down server...", "INFO")
+	consumerGroup.Stop()
+	redis.Close()
 }
