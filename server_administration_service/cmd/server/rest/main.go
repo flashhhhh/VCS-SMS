@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"server_administration_service/api/routes"
 	"server_administration_service/infrastructure/postgres"
+	"server_administration_service/infrastructure/redis"
 	"server_administration_service/internal/handler"
 	"server_administration_service/internal/repository"
 	"server_administration_service/internal/service"
@@ -48,8 +49,13 @@ func main() {
 	// Migrate the database
 	postgres.Migrate(db)
 
+	// Initialize Redis client
+	redisAddress := env.GetEnv("SERVER_REDIS_HOST", "localhost") + 
+				":" + env.GetEnv("SERVER_REDIS_PORT", "6379")
+	redis := redis.NewRedisClient(redisAddress)
+
 	// Initialize the server
-	serverRepository := repository.NewServerRepository(db)
+	serverRepository := repository.NewServerRepository(db, redis)
 	serverService := service.NewServerService(serverRepository)
 	serverHandler := handler.NewServerHandler(serverService)
 

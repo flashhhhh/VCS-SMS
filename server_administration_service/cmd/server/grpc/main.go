@@ -5,13 +5,14 @@ import (
 	"path/filepath"
 	"server_administration_service/infrastructure/grpc"
 	"server_administration_service/infrastructure/postgres"
+	"server_administration_service/infrastructure/redis"
 	"server_administration_service/internal/handler"
 	"server_administration_service/internal/repository"
 	"server_administration_service/internal/service"
 
 	"github.com/flashhhhh/pkg/env"
-	"github.com/flashhhhh/pkg/logging"
 	"github.com/flashhhhh/pkg/kafka"
+	"github.com/flashhhhh/pkg/logging"
 )
 
 func main() {
@@ -46,6 +47,11 @@ func main() {
 	// Migrate the database
 	postgres.Migrate(db)
 
+	// Initialize Redis client
+	redisAddress := env.GetEnv("SERVER_REDIS_HOST", "localhost") + 
+				":" + env.GetEnv("SERVER_REDIS_PORT", "6379")
+	redis := redis.NewRedisClient(redisAddress)
+
 	// Initialize Kafka Consumer Group
 	brokers := []string{"localhost:9092"}
 	groupID := "server_administration_group"
@@ -59,7 +65,7 @@ func main() {
 	}
 
 	// Initialize internal services
-	serverRepository := repository.NewServerRepository(db)
+	serverRepository := repository.NewServerRepository(db, redis)
 	serverService := service.NewServerService(serverRepository)
 	serverHandler := handler.NewGrpcServerHandler(serverService)
 

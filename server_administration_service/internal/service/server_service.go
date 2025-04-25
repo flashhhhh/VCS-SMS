@@ -13,7 +13,7 @@ import (
 )
 
 type ServerService interface {
-	CreateServer(server_id, server_name, status, ipv4 string, port int) error
+	CreateServer(server_id, server_name, status, ipv4 string, port int) (int, error)
 	ViewServers(serverFilter *dto.ServerFilter, from, to int, sortedColumn string, order string) ([]domain.Server, error)
 	UpdateServer(server_id string, updatedData map[string]interface{}) error
 	DeleteServer(server_id string) error
@@ -34,7 +34,7 @@ func NewServerService(serverRepository repository.ServerRepository) ServerServic
 	}
 }
 
-func (s *serverService) CreateServer(server_id, server_name, status, ipv4 string, port int) error {
+func (s *serverService) CreateServer(server_id, server_name, status, ipv4 string, port int) (int, error) {
 	server := &domain.Server{
 		ServerID:   server_id,
 		ServerName: server_name,
@@ -43,11 +43,11 @@ func (s *serverService) CreateServer(server_id, server_name, status, ipv4 string
 		Port: 	 port,
 	}
 
-	err := s.serverRepository.CreateServer(server)
+	id, err := s.serverRepository.CreateServer(server)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return id, nil
 }
 
 func (s *serverService) ViewServers(serverFilter *dto.ServerFilter, from, to int, sortedColumn string, order string) ([]domain.Server, error) {
@@ -127,12 +127,6 @@ func (s *serverService) ImportServers(buf []byte) error {
 		}
 
 		servers = append(servers, server)
-
-		logging.LogMessage("server_administration_service", "Server imported: "+serverID, "DEBUG")
-		logging.LogMessage("server_administration_service", "Server name: "+serverName, "DEBUG")
-		logging.LogMessage("server_administration_service", "Server status: "+status, "DEBUG")
-		logging.LogMessage("server_administration_service", "Server IPv4: "+ipv4, "DEBUG")
-		logging.LogMessage("server_administration_service", "Server port: "+strconv.Itoa(port), "DEBUG")
 	}
 
 	s.serverRepository.CreateServers(servers)

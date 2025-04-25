@@ -52,14 +52,14 @@ func (h *serverHandler) CreateServer(w http.ResponseWriter, r *http.Request) {
 		port = int(portFloat)
 	}
 	
-	err = h.service.CreateServer(serverID, serverName, status, ipAddress, port)
+	id, err := h.service.CreateServer(serverID, serverName, status, ipAddress, port)
 	if err != nil {
 		logging.LogMessage("server_administration_service", "Failed to create server: "+err.Error(), "ERROR")
 		http.Error(w, "Failed to create server", http.StatusInternalServerError)
 		return
 	}
 
-	logging.LogMessage("server_administration_service", "Server created successfully with ID: "+serverID, "INFO")
+	logging.LogMessage("server_administration_service", "Server created successfully with ID: "+strconv.Itoa(id), "INFO")
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte("Server created successfully"))
 }
