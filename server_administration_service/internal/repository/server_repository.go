@@ -191,6 +191,23 @@ func (r *serverRepository) DeleteServer(serverID string) error {
 }
 
 func (r *serverRepository) UpdateServerStatus(id int, status string) error {
+	/*
+		WARNING: Not handling the case when Redis is crashed
+	*/
+	currentStatus := int(r.redis.GetBit(context.Background(), "server_status", int64(id)).Val())
+	nextStatus := 0
+	if status == "On" {
+		nextStatus = 1
+	}
+
+	if currentStatus == nextStatus {
+		logging.LogMessage("server_administration_service", "Server ID "+strconv.Itoa(id)+" status is already "+status, "INFO")
+		return nil
+	}
+
+	// Update Redis bitmap
+	r.redis.SetBit(context.Background(), "server_status", int64(id), nextStatus)
+
 	if err := r.db.Model(&domain.Server{}).
 		Where("id = ?", id).
 		Update("status", status).Error; err != nil {
