@@ -171,9 +171,22 @@ func (r *serverRepository) UpdateServer(serverID string, updatedData map[string]
 }
 
 func (r *serverRepository) DeleteServer(serverID string) error {
+	// Get the server's ID before deleting
+	var server domain.Server
+	if err := r.db.Where("server_id = ?", serverID).First(&server).Error; err != nil {
+		return err
+	}
+
+	// Delete the server
 	if err := r.db.Delete(&domain.Server{}, serverID).Error; err != nil {
 		return err
 	}
+
+	// Update Redis bitmap
+	if err := r.redis.SetBit(context.Background(), "server_status", int64(server.ID), 0).Err(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
