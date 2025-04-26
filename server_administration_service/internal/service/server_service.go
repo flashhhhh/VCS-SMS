@@ -22,6 +22,8 @@ type ServerService interface {
 	
 	UpdateServerStatus(id int, status string) error
 	GetAllAddresses() ([]dto.ServerAddress, error)
+
+	AddServerStatus(id int, status string) error
 }
 
 type serverService struct {
@@ -162,4 +164,9 @@ func (s *serverService) ExportServers(serverFilter *dto.ServerFilter, from, to i
 
 	logging.LogMessage("server_administration_service", "Servers exported successfully", "INFO")
 	return buf.Bytes(), nil
+}
+
+func (s *serverService) AddServerStatus(id int, status string) error {
+	err := s.serverRepository.AddServerStatus(id, status)
+	return err
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"server_administration_service/infrastructure/elasticsearch"
 	"server_administration_service/infrastructure/grpc"
 	"server_administration_service/infrastructure/postgres"
 	"server_administration_service/infrastructure/redis"
@@ -54,6 +55,12 @@ func main() {
 				":" + env.GetEnv("SERVER_REDIS_PORT", "6379")
 	redis := redis.NewRedisClient(redisAddress)
 
+	// Initialize Elasticsearch client
+	elasticsearchAddress := env.GetEnv("SERVER_ELASTICSEARCH_HOST", "localhost") +
+						":" + env.GetEnv("SERVER_ELASTICSEARCH_PORT", "9200")
+	
+	es := elasticsearch.ConnectES(elasticsearchAddress)
+
 	// Initialize Kafka Consumer Group
 	brokers := []string{"localhost:9092"}
 	groupID := "server_administration_group"
@@ -67,7 +74,7 @@ func main() {
 	}
 
 	// Initialize internal services
-	serverRepository := repository.NewServerRepository(db, redis)
+	serverRepository := repository.NewServerRepository(db, redis, es)
 	serverService := service.NewServerService(serverRepository)
 	serverHandler := handler.NewGrpcServerHandler(serverService)
 

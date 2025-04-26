@@ -44,11 +44,19 @@ func (h ServerConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession,
 		}
 		
 		// Now you can use the parsed message
+		logging.LogMessage("server_administration_service", "Updating server status: "+serverMessage.IPv4, "INFO")
+
 		status := "Off"
 		if serverMessage.Status {
 			status = "On"
 		}
 		h.serverService.UpdateServerStatus(serverMessage.ID, status)
+
+		logging.LogMessage("server_administration_service", "Write to ES: "+serverMessage.IPv4, "INFO")
+		err := h.serverService.AddServerStatus(serverMessage.ID, status)
+		if err != nil {
+			logging.LogMessage("server_administration_service", "Error writing to ES: "+err.Error(), "ERROR")
+		}
 
 		logging.LogMessage("server_administration_service", "Message processed: " + string(message.Value), "INFO")
 	}

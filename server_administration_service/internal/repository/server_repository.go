@@ -1,12 +1,16 @@
 package repository
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
-	"strconv"
 	"server_administration_service/internal/domain"
 	"server_administration_service/internal/dto"
+	"strconv"
+	"time"
 
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/flashhhhh/pkg/logging"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -21,17 +25,21 @@ type ServerRepository interface {
 	
 	UpdateServerStatus(id int, status string) error
 	GetAllAddresses() ([]dto.ServerAddress, error)
+
+	AddServerStatus(id int, status string) error
 }
 
 type serverRepository struct {
 	db *gorm.DB
 	redis *redis.Client
+	es *elasticsearch.Client
 }
 
-func NewServerRepository(db *gorm.DB, redis *redis.Client) ServerRepository {
+func NewServerRepository(db *gorm.DB, redis *redis.Client, es *elasticsearch.Client) ServerRepository {
 	return &serverRepository{
 		db: db,
 		redis: redis,
+		es: es,
 	}
 }
 
@@ -225,4 +233,36 @@ func (r *serverRepository) GetAllAddresses() ([]dto.ServerAddress, error) {
 	}
 
 	return addresses, nil
+}
+
+func (r *serverRepository) AddServerStatus(id int, status string) error {
+	// Add server status to Elasticsearch
+	ctx := context.Background()
+
+	doc := map[string]interface{}{
+		"id":     id,
+		"status": status,
+		"timestamp": time.Now(),
+	}
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(doc); err != nil {
+		return err
+	}
+
+	res, err := r.es.Index(
+		"server_status",
+		&buf,
+		r.es.Index.WithContext(ctx),
+	)
+
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.IsError() {
+		return fmt.Errorf("Error indexing document: %s", res.String())
+	}
+	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"server_administration_service/api/routes"
+	"server_administration_service/infrastructure/elasticsearch"
 	"server_administration_service/infrastructure/postgres"
 	"server_administration_service/infrastructure/redis"
 	"server_administration_service/internal/handler"
@@ -54,8 +55,13 @@ func main() {
 				":" + env.GetEnv("SERVER_REDIS_PORT", "6379")
 	redis := redis.NewRedisClient(redisAddress)
 
+	// Initialize Elasticsearch client
+	elasticsearchAddress := env.GetEnv("SERVER_ELASTICSEARCH_HOST", "localhost") +
+						":" + env.GetEnv("SERVER_ELASTICSEARCH_PORT", "9200")
+	es := elasticsearch.ConnectES(elasticsearchAddress)
+
 	// Initialize the server
-	serverRepository := repository.NewServerRepository(db, redis)
+	serverRepository := repository.NewServerRepository(db, redis, es)
 	serverService := service.NewServerService(serverRepository)
 	serverHandler := handler.NewServerHandler(serverService)
 
