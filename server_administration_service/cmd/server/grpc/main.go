@@ -78,6 +78,10 @@ func main() {
 	serverService := service.NewServerService(serverRepository)
 	serverHandler := handler.NewGrpcServerHandler(serverService)
 
+	// Synchronize Redis with DB
+	serverRepository.SyncServerStatus()
+
+	// Start Kafka consumer
 	kafkaHandler := handler.NewServerConsumerHandler(serverService)
 	consumerGroup.StartConsuming(kafkaHandler)
 

@@ -30,6 +30,8 @@ type ServerRepository interface {
 	GetNumOnServers() (int, error)
 	GetNumServers() (int, error)
 	GetServerUptimeRatio(startTime, endTime time.Time) (float64, error)
+
+	SyncServerStatus() error
 }
 
 type serverRepository struct {
@@ -365,4 +367,38 @@ func (r *serverRepository) GetServerUptimeRatio(startTime, endTime time.Time) (f
 		return 0, nil
 	}
 	return avgRatio.(float64), nil
+}
+
+func (r *serverRepository) SyncServerStatus() error {
+	// Get all server statuses from the database
+	var servers []domain.Server
+	if err := r.db.Find(&servers).Error; err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+
+	// Delete old data
+	r.redis.Del(ctx, "server_status")
+
+	// Set all bits first
+	for _, server := range servers {
+		status := 0
+		if server.Status == "On" {
+			status = 1
+		}
+
+		if status == 1 {
+			println("Server ID: " + strconv.Itoa(server.ID) + " is On")
+			_, err := r.redis.SetBit(ctx, "server_status", int64(server.ID), status).Result()
+			if err != nil {
+				println("SetBit failed for server ID: " + strconv.Itoa(server.ID) + " error: " + err.Error())
+			}
+		}
+	}
+
+	numOnServers, _ := r.redis.BitCount(ctx, "server_status", nil).Result()
+	println("Num On server: " + strconv.Itoa(int(numOnServers)))
+
+	return nil
 }
