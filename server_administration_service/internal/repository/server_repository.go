@@ -27,6 +27,9 @@ type ServerRepository interface {
 	GetAllAddresses() ([]dto.ServerAddress, error)
 
 	AddServerStatus(id int, status string) error
+	GetNumOnServers() (int, error)
+	GetNumServers() (int, error)
+	GetServerUptimeRatio(startTime, endTime time.Time) (float64, error)
 }
 
 type serverRepository struct {
@@ -265,4 +268,101 @@ func (r *serverRepository) AddServerStatus(id int, status string) error {
 		return fmt.Errorf("Error indexing document: %s", res.String())
 	}
 	return nil
+}
+
+func (r *serverRepository) GetNumOnServers() (int, error) {
+	numOnServers := int(r.redis.BitCount(context.Background(), "server_status", &redis.BitCount{}).Val())
+	return numOnServers, nil
+}
+
+func (r *serverRepository) GetNumServers() (int, error) {
+	var count int64
+	if err := r.db.Model(&domain.Server{}).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return int(count), nil
+}
+
+func (r *serverRepository) GetServerUptimeRatio(startTime, endTime time.Time) (float64, error) {
+	query := map[string]interface{}{
+		"size": 0,
+		"query": map[string]interface{}{
+			"range": map[string]interface{}{
+				"timestamp": map[string]interface{}{
+					"gte": startTime.Format(time.RFC3339),
+					"lte": endTime.Format(time.RFC3339),
+				},
+			},
+		},
+		"aggs": map[string]interface{}{
+			"per_server": map[string]interface{}{
+				"terms": map[string]interface{}{
+					"field": "id",
+					"size":  10000,
+				},
+				"aggs": map[string]interface{}{
+					"total_docs": map[string]interface{}{
+						"value_count": map[string]interface{}{
+							"field": "id",
+						},
+					},
+					"on_count": map[string]interface{}{
+						"filter": map[string]interface{}{
+							"term": map[string]interface{}{
+								"status.keyword": "On",
+							},
+						},
+					},
+					"on_ratio": map[string]interface{}{
+						"bucket_script": map[string]interface{}{
+							"buckets_path": map[string]interface{}{
+								"on":  "on_count._count",
+								"all": "total_docs.value",
+							},
+							"script": "params.all > 0 ? params.on / params.all : 0",
+						},
+					},
+				},
+			},
+			"avg_ratio": map[string]interface{}{
+				"avg_bucket": map[string]interface{}{
+					"buckets_path": "per_server>on_ratio.value",
+				},
+			},
+		},
+	}
+
+	// Encode the query
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		return 0, err
+	}
+
+	res, err := r.es.Search(
+		r.es.Search.WithContext(context.Background()),
+		r.es.Search.WithIndex("server_status"),
+		r.es.Search.WithBody(&buf),
+		r.es.Search.WithTrackTotalHits(true),
+		r.es.Search.WithPretty(),
+	)
+
+	if err != nil {
+		return 0, err
+	}
+	defer res.Body.Close()
+
+	if res.IsError() {
+		return 0, fmt.Errorf("Error getting server uptime ratio: %s", res.String())
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
+		return 0, err
+	}
+
+	avgRatio := result["aggregations"].(map[string]interface{})["avg_ratio"].(map[string]interface{})["value"]
+	if avgRatio == nil {
+		return 0, nil
+	}
+	return avgRatio.(float64), nil
 }

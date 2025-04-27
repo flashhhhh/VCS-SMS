@@ -1,6 +1,8 @@
 package main
 
 import (
+	"mail_service/infrastructure/grpc"
+	grpcclient "mail_service/internal/grpc_client"
 	"mail_service/internal/service"
 	"os"
 	"os/signal"
@@ -32,11 +34,25 @@ func main() {
 		logging.LogMessage("mail_service", "Environment variables loaded successfully from "+environmentFilePath, "INFO")
 	}
 
+	// Initialize gRPC client
+	grpcClient, err := grpc.StartGRPCClient()
+	if err != nil {
+		panic(err)
+	}
+
+	client := grpcclient.NewServerAdministrationServiceClient(grpcClient)
+
 	go func () {
-		numServers := 10
-		numOnServers := 7
-		numOffServers := 3
-		meanUptimeRate := 70.0
+		resp, err := client.GetServerInformation(time.Now().Add(-24*time.Hour).Unix(), time.Now().Unix())
+		if err != nil {
+			logging.LogMessage("mail_service", "Failed to get server information: "+err.Error(), "ERROR")
+			return
+		}
+
+		numServers := int(resp.NumServers)
+		numOnServers := int(resp.NumOnServers)
+		numOffServers := int(resp.NumOffServers)
+		meanUptimeRate := float64(resp.MeanUptimeRatio)
 
 		to := env.GetEnv("SERVER_ADMINISTRATOR_EMAIL", "")
 		subject := "Daily Server Status Report for " + time.Now().Format("2006-01-02")

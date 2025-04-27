@@ -8,7 +8,7 @@ import (
 )
 
 func PrepareEmail(to string, subject string, numServers, numOnServers, numOffServers int, meanUptimeRate float64) (string, error) {
-	body := fmt.Sprintf("Dear server administrator,\n\nThe server status is as follows:\n\nTotal servers: %d\nServers on: %d\nServers off: %d\nMean uptime rate: %.2f%%\n\nBest regards,\nYour Server Monitoring System", numServers, numOnServers, numOffServers, meanUptimeRate)
+	body := fmt.Sprintf("Dear server administrator,\n\nThe server status is as follows:\n\nTotal servers: %d\nServers on: %d\nServers off: %d\nMean uptime rate: %.2f%%\n\nBest regards,\nYour Server Monitoring System", numServers, numOnServers, numOffServers, meanUptimeRate * 100)
 
 	err := SendEmail(to, subject, body)
 	if err != nil {

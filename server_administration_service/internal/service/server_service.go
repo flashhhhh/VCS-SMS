@@ -7,6 +7,7 @@ import (
 	"server_administration_service/internal/repository"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/flashhhhh/pkg/logging"
 	"github.com/xuri/excelize/v2"
@@ -24,6 +25,9 @@ type ServerService interface {
 	GetAllAddresses() ([]dto.ServerAddress, error)
 
 	AddServerStatus(id int, status string) error
+	GetNumOnServers() (int, error)
+	GetNumServers() (int, error)
+	GetServerUptimeRatio(startTime, endTime time.Time) (float64, error)
 }
 
 type serverService struct {
@@ -169,4 +173,16 @@ func (s *serverService) ExportServers(serverFilter *dto.ServerFilter, from, to i
 func (s *serverService) AddServerStatus(id int, status string) error {
 	err := s.serverRepository.AddServerStatus(id, status)
 	return err
+}
+
+func (s *serverService) GetNumOnServers() (int, error) {
+	return s.serverRepository.GetNumOnServers()
+}
+
+func (s *serverService) GetNumServers() (int, error) {
+	return s.serverRepository.GetNumServers()
+}
+
+func (s *serverService) GetServerUptimeRatio(startTime, endTime time.Time) (float64, error) {
+	return s.serverRepository.GetServerUptimeRatio(startTime, endTime)
 }
