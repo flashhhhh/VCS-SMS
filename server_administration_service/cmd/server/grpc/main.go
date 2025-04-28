@@ -56,8 +56,10 @@ func main() {
 	redis := redis.NewRedisClient(redisAddress)
 
 	// Initialize Elasticsearch client
-	elasticsearchAddress := env.GetEnv("SERVER_ELASTICSEARCH_HOST", "localhost") +
-						":" + env.GetEnv("SERVER_ELASTICSEARCH_PORT", "9200")
+	// elasticsearchAddress := env.GetEnv("SERVER_ELASTICSEARCH_HOST", "localhost") +
+	// 					":" + env.GetEnv("SERVER_ELASTICSEARCH_PORT", "9200")
+
+	elasticsearchAddress := "http://0.0.0.0:9200"
 	
 	es := elasticsearch.ConnectES(elasticsearchAddress)
 

@@ -4,6 +4,8 @@ go 1.24.2
 
 require (
 	github.com/flashhhhh/pkg v0.0.5
+	github.com/go-chi/cors v1.2.1
+	github.com/gorilla/mux v1.8.1
 	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.5
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df

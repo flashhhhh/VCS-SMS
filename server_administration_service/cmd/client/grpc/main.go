@@ -6,6 +6,7 @@ import (
 
 	"github.com/flashhhhh/pkg/env"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -17,10 +18,9 @@ func main() {
 		println("Environment variables loaded successfully from " + environmentFilePath)
 	}
 
-	// Connect to the gRPC server
-	grpcServerAddress := env.GetEnv("GRPC_SERVER_ADMINISTRATION_HOST", "localhost") + ":" + env.GetEnv("SERVER_GRPC_ADMINISTRATION_PORT", "50051")
+	grpcServerAddress := "localhost:50052"
 
-	conn, err := grpc.Dial(grpcServerAddress, grpc.WithInsecure())
+	conn, err := grpc.Dial(grpcServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
 	}
@@ -37,4 +37,18 @@ func main() {
 	for _, address := range addressesResponse.Addresses {
 		println("Server ID:", address.Id, ", Address:", address.Address)
 	}
+
+	// Get server information
+	startTime := int64(1672531199) // Example start time
+	endTime := int64(1672617599)   // Example end time
+	serverInfoResponse, err := client.GetServerInformation(context.Background(), &pb.GetServerInformationRequest{
+		StartTime: startTime,
+		EndTime:   endTime,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+	println("Number of ON servers:", serverInfoResponse.NumOnServers)
+	println("Number of OFF servers:", serverInfoResponse.NumOffServers)
 }

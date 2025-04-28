@@ -1,17 +1,20 @@
 package main
 
 import (
+	"mail_service/api/routes"
 	"mail_service/infrastructure/grpc"
 	grpcclient "mail_service/internal/grpc_client"
+	"mail_service/internal/handler"
 	"mail_service/internal/service"
+	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	"github.com/flashhhhh/pkg/env"
 	"github.com/flashhhhh/pkg/logging"
+	"github.com/go-chi/cors"
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -41,30 +44,48 @@ func main() {
 	}
 
 	client := grpcclient.NewServerAdministrationServiceClient(grpcClient)
+	resp, err := client.GetServerInformation(
+		time.Now().Add(-24*time.Hour).Unix(),
+		time.Now().Unix(),
+	)
 
+	if err != nil {
+		println("Failed to get server information:", err.Error())
+		panic(err)
+	}
+
+	println("Server Information:", resp)
+
+	mailService := service.NewMailService(client)
+	mailHandler := handler.NewMailHandler(mailService)
+
+	// Send email report every 24 hours
 	go func () {
-		resp, err := client.GetServerInformation(time.Now().Add(-24*time.Hour).Unix(), time.Now().Unix())
-		if err != nil {
-			logging.LogMessage("mail_service", "Failed to get server information: "+err.Error(), "ERROR")
-			return
-		}
-
-		numServers := int(resp.NumServers)
-		numOnServers := int(resp.NumOnServers)
-		numOffServers := int(resp.NumOffServers)
-		meanUptimeRate := float64(resp.MeanUptimeRatio)
-
-		to := env.GetEnv("SERVER_ADMINISTRATOR_EMAIL", "")
-		subject := "Daily Server Status Report for " + time.Now().Format("2006-01-02")
-
-		service.PrepareEmail(to, subject, numServers, numOnServers, numOffServers, meanUptimeRate)
-
+		mailService.StartEmailReport(time.Now().Add(-24*time.Hour).Unix(), time.Now().Unix())
 		time.Sleep(24 * time.Hour)
 	}()
 
-	// Listen for interrupt signal
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	// Start the server
+	serverPort := env.GetEnv("MAIL_SERVICE_PORT", "10003")
 
-	<-sigs // Wait for interrupt
+	r := mux.NewRouter()
+	routes.RegisterRoutes(r, mailHandler)
+
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // Allow all origins, change this for security
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
+	}).Handler(r)
+
+	logging.LogMessage("mail_service", "Starting server on port "+serverPort, "INFO")
+	if err := http.ListenAndServe("localhost:"+serverPort, corsHandler); err != nil {
+		logging.LogMessage("mail_service", "Failed to start server: "+err.Error(), "FATAL")
+		logging.LogMessage("mail_service", "Server stopped", "INFO")
+		os.Exit(1)
+	}
+
+	logging.LogMessage("mail_service", "Server stopped", "INFO")
+	logging.LogMessage("mail_service", "Exiting the program...", "INFO")
+	os.Exit(0)
 }

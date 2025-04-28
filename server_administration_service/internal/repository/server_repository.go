@@ -273,8 +273,8 @@ func (r *serverRepository) AddServerStatus(id int, status string) error {
 }
 
 func (r *serverRepository) GetNumOnServers() (int, error) {
-	numOnServers := int(r.redis.BitCount(context.Background(), "server_status", &redis.BitCount{}).Val())
-	return numOnServers, nil
+	numOnServers, _ := r.redis.BitCount(context.Background(), "server_status", nil).Result()
+	return int(numOnServers), nil
 }
 
 func (r *serverRepository) GetNumServers() (int, error) {
