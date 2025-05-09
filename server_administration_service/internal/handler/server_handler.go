@@ -226,7 +226,7 @@ func (h *serverHandler) ImportServers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.ImportServers(buf)
+	importedServer, nonImportedServer, err := h.service.ImportServers(buf)
 	if err != nil {
 		logging.LogMessage("server_administration_service", "Failed to import servers: "+err.Error(), "ERROR")
 		http.Error(w, "Failed to import servers", http.StatusInternalServerError)
@@ -235,7 +235,21 @@ func (h *serverHandler) ImportServers(w http.ResponseWriter, r *http.Request) {
 
 	logging.LogMessage("server_administration_service", "Servers imported successfully", "INFO")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Servers imported successfully"))
+	w.Header().Set("Content-Type", "application/json")
+
+	response := map[string]interface{}{
+		"imported_servers":    importedServer,
+		"non_imported_servers": nonImportedServer,
+	}
+	
+	responseJSON, err := json.Marshal(response)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Failed to marshal response: "+err.Error(), "ERROR")
+		http.Error(w, "Failed to process servers data", http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(responseJSON)
 }
 
 func (h *serverHandler) ExportServers(w http.ResponseWriter, r *http.Request) {

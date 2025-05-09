@@ -18,7 +18,7 @@ type ServerService interface {
 	ViewServers(serverFilter *dto.ServerFilter, from, to int, sortedColumn string, order string) ([]domain.Server, error)
 	UpdateServer(server_id string, updatedData map[string]interface{}) error
 	DeleteServer(server_id string) error
-	ImportServers(buf []byte) error
+	ImportServers(buf []byte) ([]domain.Server, []domain.Server, error)
 	ExportServers(serverFilter *dto.ServerFilter, from, to int, sortedColumn string, order string) ([]byte, error)
 	
 	UpdateServerStatus(id int, status string) error
@@ -88,17 +88,17 @@ func (s *serverService) GetAllAddresses() ([]dto.ServerAddress, error) {
 	return addresses, nil
 }
 
-func (s *serverService) ImportServers(buf []byte) error {
+func (s *serverService) ImportServers(buf []byte) ([]domain.Server, []domain.Server, error) {
 	f, err := excelize.OpenReader(strings.NewReader(string(buf)))
 	if err != nil {
 		logging.LogMessage("server_administration_service", "Failed to open Excel file: "+err.Error(), "ERROR")
-		return err
+		return nil, nil, err
 	}
 
 	rows, err := f.GetRows("Sheet1")
 	if err != nil || len(rows) < 2 {
 		logging.LogMessage("server_administration_service", "Failed to get rows from Excel file: "+err.Error(), "ERROR")
-		return err
+		return nil, nil, err
 	}
 
 	servers := make([]domain.Server, 0)
@@ -114,7 +114,7 @@ func (s *serverService) ImportServers(buf []byte) error {
 			port, err = strconv.Atoi(row[4])
 			if err != nil {
 				logging.LogMessage("server_administration_service", "Invalid port value: "+row[4], "ERROR")
-				return err
+				return nil, nil, err
 			}
 		}
 
@@ -129,9 +129,14 @@ func (s *serverService) ImportServers(buf []byte) error {
 		servers = append(servers, server)
 	}
 
-	s.serverRepository.CreateServers(servers)
+	insertedServers, nonInsertedServers, err := s.serverRepository.CreateServers(servers)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Failed to insert servers: "+err.Error(), "ERROR")
+		return nil, nil, err
+	}
+	
 	logging.LogMessage("server_administration_service", "Servers imported successfully", "INFO")
-	return nil
+	return insertedServers, nonInsertedServers, nil	
 }
 
 func (s *serverService) ExportServers(serverFilter *dto.ServerFilter, from, to int, sortedColumn string, order string) ([]byte, error) {

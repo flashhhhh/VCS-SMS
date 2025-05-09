@@ -556,9 +556,48 @@ paths:
               schema:
                 type: object
                 properties:
-                  message:
-                    type: string
-                    example: Server data imported successfully
+                  imported_servers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        server_id:
+                          type: string
+                          example: "1"
+                        server_name:
+                          type: string
+                          example: "Server 1"
+                        status:
+                          type: string
+                          example: "On"
+                        ipv4:
+                          type: string
+                          format: ipv4
+                          example: "192.168.1.1"
+                        port:
+                          type: integer
+                          example: 80
+                  non_imported_servers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        server_id:
+                          type: string
+                          example: "1"
+                        server_name:
+                          type: string
+                          example: "Server 1"
+                        status:
+                          type: string
+                          example: "On"
+                        ipv4:
+                          type: string
+                          format: ipv4
+                          example: "192.168.1.1"
+                        port:
+                          type: integer
+                          example: 80
         '400':
           description: Bad request
           content:

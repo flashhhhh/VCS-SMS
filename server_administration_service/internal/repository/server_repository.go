@@ -18,7 +18,7 @@ import (
 
 type ServerRepository interface {
 	CreateServer(server *domain.Server) (int, error)
-	CreateServers(servers []domain.Server) error
+	CreateServers(servers []domain.Server) ([]domain.Server, []domain.Server, error)
 	ViewServers(serverFilter *dto.ServerFilter, from, to int, sortedColumn string, order string) ([]domain.Server, error)
 	UpdateServer(server_id string, updatedData map[string]interface{}) error
 	DeleteServer(serverID string) error
@@ -107,9 +107,8 @@ func (r *serverRepository) ViewServers(serverFilter *dto.ServerFilter, from, to 
 /*
 	UPDATE: Using Raw query to receive just the inserted records
 */
-func (r *serverRepository) CreateServers(servers []domain.Server) error {
+func (r *serverRepository) CreateServers(servers []domain.Server) (inserted []domain.Server, nonInserted []domain.Server, err error) {
 	// Use raw SQL to insert multiple rows and get the inserted IDs
-
 	query := `
 		INSERT INTO servers (server_id, server_name, status, ipv4, port) VALUES 
 	`
@@ -123,38 +122,43 @@ func (r *serverRepository) CreateServers(servers []domain.Server) error {
 		}
 	}
 
-	query += " ON CONFLICT DO NOTHING RETURNING *";
+	query += " ON CONFLICT DO NOTHING RETURNING *"
 
 	var result []domain.Server
-	err := r.db.Raw(query).Scan(&result).Error
+	err = r.db.Raw(query).Scan(&result).Error
 	if err != nil {
 		logging.LogMessage("server_administration_service", "Error inserting servers: "+err.Error(), "ERROR")
-		return err
+		return nil, nil, err
 	}
 
-	for _, result := range result {
-		logging.LogMessage("server_administration_service", "Server " + strconv.Itoa(result.ID) + " inserted successfully", "INFO")
+	// Determine non-inserted records
+	insertedMap := make(map[string]bool)
+	for _, server := range result {
+		insertedMap[server.ServerID] = true
+		inserted = append(inserted, server)
+	}
 
-		logInformation := strconv.Itoa(result.ID) + 
-						" " + result.ServerID +
-						" " + result.ServerName +
-						" " + result.Status +
-						" " + result.IPv4 +
-						" " + strconv.Itoa(result.Port)
-		logging.LogMessage("server_administration_service", logInformation, "DEBUG") 
+	for _, server := range servers {
+		if !insertedMap[server.ServerID] {
+			nonInserted = append(nonInserted, server)
+		}
+	}
+
+	// Update Redis bitmap for inserted records
+	for _, server := range result {
+		logging.LogMessage("server_administration_service", "Server "+strconv.Itoa(server.ID)+" inserted successfully", "INFO")
 
 		status := 0
-		if result.Status == "On" {
+		if server.Status == "On" {
 			status = 1
 		}
 
-		logging.LogMessage("server_administration_service", "Redis bitmap updated for server ID: "+strconv.Itoa(result.ID), "INFO")
-		logging.LogMessage("server_administration_service", "Server is " + result.Status, "DEBUG")
-
-		r.redis.SetBit(context.Background(), "server_status", int64(result.ID), status).Err()
+		if err := r.redis.SetBit(context.Background(), "server_status", int64(server.ID), status).Err(); err != nil {
+			logging.LogMessage("server_administration_service", "Error updating Redis bitmap for server ID: "+strconv.Itoa(server.ID)+", error: "+err.Error(), "ERROR")
+		}
 	}
 
-	return nil
+	return inserted, nonInserted, nil
 }
 
 func (r *serverRepository) UpdateServer(serverID string, updatedData map[string]interface{}) error {
