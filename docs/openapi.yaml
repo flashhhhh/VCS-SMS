@@ -13,6 +13,14 @@ servers:
   
   - url: http://localhost:80
     description: Deployment server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
 paths:
   /user/create:
     post:
@@ -722,6 +730,8 @@ paths:
     post:
       summary: Send email manually
       description: Sends an email to the specified recipient.
+      security:
+      - bearerAuth: []
       parameters:
         - name: start_time
           in: query
