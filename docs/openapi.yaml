@@ -632,6 +632,8 @@ paths:
     get:
       summary: Export server data
       description: Exports server data to an excel file.
+      security:
+      - bearerAuth: []
       parameters:
         - name: from
           in: query
