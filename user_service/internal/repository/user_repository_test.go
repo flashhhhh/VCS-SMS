@@ -122,6 +122,71 @@ func TestCreateUser_Failure(t *testing.T) {
 	assert.Contains(t, err2.Error(), "duplicate key")
 }
 
+func TestLogin_Success(t *testing.T) {
+	db, mock := setupMockDB(t)
+	defer func() {
+		dbInstance, _ := db.DB()
+		dbInstance.Close()
+	}()
+
+	user := &domain.User{
+		ID:       uuid.New().String(),
+		Username: "testuser",
+		Password: "testpassword",
+		Name:    "Test User",
+		Email:  "testuser@gmail.com",
+		Role:  "user",
+	}
+
+	// Mock the database query
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE username = \$1 ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs(user.Username, 1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "password", "name", "email", "role"}).
+		AddRow(user.ID, user.Username, user.Password, user.Name, user.Email, user.Role))
+	
+	// Create a new UserRepository instance
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+	userRepo := NewUserRepository(db, redisClient)
+
+	// Call the Login method
+	loggedInUser, err := userRepo.Login(context.Background(), user.Username)
+	assert.NoError(t, err)
+	assert.NotNil(t, loggedInUser)
+	assert.Equal(t, user.ID, loggedInUser.ID)
+	assert.Equal(t, user.Username, loggedInUser.Username)
+	assert.Equal(t, user.Password, loggedInUser.Password)
+	assert.Equal(t, user.Name, loggedInUser.Name)
+	assert.Equal(t, user.Email, loggedInUser.Email)
+	assert.Equal(t, user.Role, loggedInUser.Role)
+}
+
+func TestLogin_Failure(t *testing.T) {
+	db, mock := setupMockDB(t)
+	defer func() {
+		dbInstance, _ := db.DB()
+		dbInstance.Close()
+	}()
+
+	// Mock the database query to return no rows
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE username = \$1 ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs("nonexistentuser", 1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "password", "name", "email", "role"}))
+	
+	// Create a new UserRepository instance
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+	userRepo := NewUserRepository(db, redisClient)
+
+	// Call the Login method with a non-existent username
+	loggedInUser, err := userRepo.Login(context.Background(), "nonexistentuser")
+	assert.Error(t, err)
+	assert.Nil(t, loggedInUser)
+	assert.Equal(t, "record not found", err.Error())
+}
+
 func TestGetUserByID_Success(t *testing.T){
 	db, mock := setupMockDB(t)
 	defer func() {
@@ -187,4 +252,82 @@ func TestGetUserByID_NotFound(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, user)
 	assert.Equal(t, "record not found", err.Error())
+}
+
+func TestGetAllUsers_Success(t *testing.T) {
+	db, mock := setupMockDB(t)
+	defer func() {
+		dbInstance, _ := db.DB()
+		dbInstance.Close()
+	}()
+
+	expectedUsers := []*domain.User{
+		{
+			ID:       uuid.New().String(),
+			Username: "testuser1",
+			Password: "testpassword1",
+			Name:    "Test User 1",
+			Email:  "testuser1@gmail.com",
+			Role:  "user",
+		},
+		{
+			ID:       uuid.New().String(),
+			Username: "testuser2",
+			Password: "testpassword2",
+			Name:    "Test User 2",
+			Email:  "testuser2@gmail.com",
+			Role:  "admin",
+		},
+	}
+
+	// Mock the database query
+	mock.ExpectQuery(`SELECT \* FROM "users"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "password", "name", "email", "role"}).
+		AddRow(expectedUsers[0].ID, expectedUsers[0].Username, expectedUsers[0].Password, expectedUsers[0].Name, expectedUsers[0].Email, expectedUsers[0].Role).
+		AddRow(expectedUsers[1].ID, expectedUsers[1].Username, expectedUsers[1].Password, expectedUsers[1].Name, expectedUsers[1].Email, expectedUsers[1].Role))
+	
+	// Create a new UserRepository instance
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+	userRepo := NewUserRepository(db, redisClient)
+
+	// Call the GetAllUsers method
+	users, err := userRepo.GetAllUsers(context.Background())
+	assert.NoError(t, err)
+	assert.NotNil(t, users)
+	assert.Len(t, users, 2)
+	
+	for i, user := range users {
+		assert.Equal(t, expectedUsers[i].ID, user.ID)
+		assert.Equal(t, expectedUsers[i].Username, user.Username)
+		assert.Equal(t, expectedUsers[i].Password, user.Password)
+		assert.Equal(t, expectedUsers[i].Name, user.Name)
+		assert.Equal(t, expectedUsers[i].Email, user.Email)
+		assert.Equal(t, expectedUsers[i].Role, user.Role)
+	}
+}
+
+func TestGetAllUsers_Failure(t *testing.T) {
+	db, mock := setupMockDB(t)
+	defer func() {
+		dbInstance, _ := db.DB()
+		dbInstance.Close()
+	}()
+
+	// Mock the database query to return an error
+	mock.ExpectQuery(`SELECT \* FROM "users"`).
+		WillReturnError(errors.New("database error"))
+
+	// Create a new UserRepository instance
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+	userRepo := NewUserRepository(db, redisClient)
+
+	// Call the GetAllUsers method
+	users, err := userRepo.GetAllUsers(context.Background())
+	assert.Error(t, err)
+	assert.Nil(t, users)
+	assert.Equal(t, "database error", err.Error())
 }
