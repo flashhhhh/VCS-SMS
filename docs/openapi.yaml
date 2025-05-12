@@ -246,6 +246,8 @@ paths:
     post:
       summary: Create a new server
       description: Creates a new server with the provided details.
+      security:
+      - bearerAuth: []
       requestBody:
         description: Server information
         content:
@@ -314,6 +316,8 @@ paths:
     get:
       summary: View server information
       description: Retrieves information about filtered servers.
+      security:
+      - bearerAuth: []
       parameters:
         - name: from
           in: query
@@ -431,6 +435,8 @@ paths:
     put:
       summary: Update server information
       description: Updates the information of an existing server.
+      security:
+      - bearerAuth: []
       parameters:
         - name: server_id
           in: query
@@ -495,6 +501,8 @@ paths:
     delete:
       summary: Delete a server
       description: Deletes a server with the provided ID.
+      security:
+      - bearerAuth: []
       parameters:
         - name: server_id
           in: query
@@ -548,6 +556,8 @@ paths:
     post:
       summary: Import server data
       description: Imports server data from a file.
+      security:
+      - bearerAuth: []
       requestBody:
         description: File containing server data
         content:
