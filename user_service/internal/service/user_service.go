@@ -61,7 +61,7 @@ func (s *userService) Login(ctx context.Context, username, password string) (str
 		return "", errors.New("Invalid password")
 	}
 
-	token, err := jwt.GenerateToken(
+	token, _ := jwt.GenerateToken(
 		map[string]any{
 			"id":    user.ID,
 			"name":  user.Name,
@@ -69,9 +69,6 @@ func (s *userService) Login(ctx context.Context, username, password string) (str
 			"role":  user.Role,
 		}, time.Hour)
 	
-	if err != nil {
-		return "", errors.New("Failed to generate token: " + err.Error())
-	}
 	return token, nil
 }
 
