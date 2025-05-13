@@ -85,7 +85,12 @@ func (h *userHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logging.LogMessage("user_service", "Failed to login user: "+err.Error(), "ERROR")
 
-		http.Error(w, "Failed to login user", http.StatusInternalServerError)
+		if err.Error() == "Invalid password" {
+			http.Error(w, "Invalid password", http.StatusUnauthorized)
+		} else {
+			http.Error(w, "Failed to login user", http.StatusInternalServerError)
+		}
+
 		return
 	}
 
@@ -111,7 +116,11 @@ func (h *userHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logging.LogMessage("user_service", "Failed to get user by ID: "+err.Error(), "ERROR")
 
-		http.Error(w, "Failed to get user by ID", http.StatusInternalServerError)
+		if err.Error() == "User "+userID+" not found" {
+			http.Error(w, "User not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Failed to get user by ID", http.StatusInternalServerError)
+		}
 		return
 	}
 
