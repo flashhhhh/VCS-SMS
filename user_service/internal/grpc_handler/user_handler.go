@@ -2,6 +2,7 @@ package grpchandler
 
 import (
 	"context"
+	"errors"
 	"user_service/internal/service"
 	"user_service/pb"
 
@@ -25,8 +26,13 @@ func (grpcHandler *UserHandler) CreateUser(ctx context.Context, req *pb.CreateUs
 
 	userID, err := grpcHandler.userService.CreateUser(ctx, req.Username, req.Password, req.Name, req.Email, req.Role)
 	if err != nil {
-		logging.LogMessage("user_service", "Failed to create user: "+err.Error(), "ERROR")
-		return nil, err
+		if err.Error() == "user already exists" {
+			logging.LogMessage("user_service", "User already exists: "+err.Error(), "ERROR")
+			return nil, errors.New("user already exists")
+		} else {
+			logging.LogMessage("user_service", "Failed to create user: "+err.Error(), "ERROR")
+			return nil, err
+		}
 	}
 
 	logging.LogMessage("user_service", "User created successfully with ID: "+userID, "INFO")
@@ -41,7 +47,12 @@ func (grpcHandler *UserHandler) Login(ctx context.Context, req *pb.LoginRequest)
 
 	token, err := grpcHandler.userService.Login(ctx, req.Username, req.Password)
 	if err != nil {
-		logging.LogMessage("user_service", "Failed to login user: "+err.Error(), "ERROR")
+		if err.Error() == "invalid password" {
+			logging.LogMessage("user_service", "Invalid password: "+err.Error(), "ERROR")
+			return nil, errors.New("invalid password")
+		}
+
+		logging.LogMessage("user_service", "Failed to login: "+err.Error(), "ERROR")
 		return nil, err
 	}
 
