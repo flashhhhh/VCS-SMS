@@ -33,3 +33,4 @@ services:
 networks:
   user_network:
     driver: bridge
+    name: user_network
