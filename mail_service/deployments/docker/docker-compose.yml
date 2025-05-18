@@ -1,0 +1,24 @@
+name: mail_service
+
+services:
+  mail_service:
+    build:
+      context: ../../
+      dockerfile: deployments/docker/Dockerfile
+    container_name: mail_service
+    environment:
+      - RUNNING_ENVIRONMENT=deployment
+    ports:
+      - 80:80
+    volumes:
+      - ../../deployment_logs/:/app/logs/
+    networks:
+      - mail_network
+      - server_administration_network
+
+networks:
+  mail_network:
+    driver: bridge
+  server_administration_network:
+    external: true
+    name: server_administration_network
