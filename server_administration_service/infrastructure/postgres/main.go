@@ -27,12 +27,20 @@ func ConnectDB(dsn string) *gorm.DB {
 func Migrate(db *gorm.DB) {
 	logging.LogMessage("server_administration_service", "Migrating the database...", "INFO")
 
-	err := db.AutoMigrate(&domain.Server{})
-	if err != nil {
-		logging.LogMessage("server_administration_service", "Failed to migrate the database: "+err.Error(), "FATAL")
-		logging.LogMessage("server_administration_service", "Exiting the program...", "FATAL")
-		os.Exit(1)
+	// Check if the table exists
+	tableExists := db.Migrator().HasTable(&domain.Server{})
+	if !tableExists {
+		logging.LogMessage("server_administration_service", "Tables don't exist, migrating...", "INFO")
+		
+		err := db.AutoMigrate(&domain.Server{})
+		if err != nil {
+			logging.LogMessage("server_administration_service", "Failed to migrate the database: "+err.Error(), "FATAL")
+			logging.LogMessage("server_administration_service", "Exiting the program...", "FATAL")
+			os.Exit(1)
+		}
+		
+		logging.LogMessage("server_administration_service", "Database migrated successfully", "INFO")
+	} else {
+		logging.LogMessage("server_administration_service", "Tables already exist, skipping migration", "INFO")
 	}
-
-	logging.LogMessage("server_administration_service", "Database migrated successfully", "INFO")
 }
