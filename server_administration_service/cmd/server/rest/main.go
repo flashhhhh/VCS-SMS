@@ -48,7 +48,12 @@ func main() {
 	db := postgres.ConnectDB(dsn)
 
 	// Migrate the database
-	postgres.Migrate(db)
+	if environment == "local" {
+		logging.LogMessage("server_administration_service", "Running database migrations in local environment", "INFO")
+		postgres.Migrate(db)
+	} else {
+		logging.LogMessage("server_administration_service", "Skipping database migrations in non-local environment", "INFO")
+	}
 
 	// Initialize Redis client
 	redisAddress := env.GetEnv("SERVER_REDIS_HOST", "localhost") + 

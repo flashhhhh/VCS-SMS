@@ -47,8 +47,12 @@ func main() {
 		" sslmode=disable"
 	db := postgres.ConnectDB(dsn)
 
-	// Migrate the database
-	postgres.Migrate(db)
+	if environment == "local" {
+		logging.LogMessage("server_administration_service", "Running database migrations in local environment", "INFO")
+		postgres.Migrate(db)
+	} else {
+		logging.LogMessage("server_administration_service", "Skipping database migrations in non-local environment", "INFO")
+	}
 
 	// Initialize Redis client
 	redisAddress := env.GetEnv("SERVER_REDIS_HOST", "localhost") + 
@@ -56,17 +60,19 @@ func main() {
 	redis := redis.NewRedisClient(redisAddress)
 
 	// Initialize Elasticsearch client
-	// elasticsearchAddress := env.GetEnv("SERVER_ELASTICSEARCH_HOST", "localhost") +
-	// 					":" + env.GetEnv("SERVER_ELASTICSEARCH_PORT", "9200")
+	elasticsearchAddress := env.GetEnv("SERVER_ELASTICSEARCH_HOST", "localhost") +
+						":" + env.GetEnv("SERVER_ELASTICSEARCH_PORT", "9200")
 
-	elasticsearchAddress := "http://0.0.0.0:9200"
+	// elasticsearchAddress := "http://0.0.0.0:9200"
 	
 	es := elasticsearch.ConnectES(elasticsearchAddress)
 
 	// Initialize Kafka Consumer Group
-	brokers := []string{"localhost:9092"}
+	brokers := []string{env.GetEnv("KAFKA_HOST", "localhost") + ":" + env.GetEnv("KAFKA_PORT", "9092")}
 	groupID := "server_administration_group"
 	topics := []string{"healthcheck_topic"}
+
+	logging.LogMessage("server_administration_service", "Connecting to Kafka brokers: "+brokers[0], "INFO")
 
 	consumerGroup, err := kafka.NewKafkaConsumerGroup(brokers, groupID, topics)
 	if err != nil {
