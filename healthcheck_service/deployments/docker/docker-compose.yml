@@ -1,0 +1,22 @@
+name: healthcheck_service
+
+services:
+  healthcheck_service:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+    container_name: healthcheck_service
+    environment:
+      - RUNNING_ENVIRONMENT=deployment
+    volumes:
+      - ../../deployment_logs/:/app/logs/
+    networks:
+      - healthcheck_network
+      - kafka_network
+
+networks:
+  healthcheck_network:
+    driver: bridge
+  kafka_network:
+    external: true
+    name: kafka_network
