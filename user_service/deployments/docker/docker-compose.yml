@@ -1,8 +1,11 @@
+name: user_service
+
 services:
   user_service:
     build:
       context: ../..
       dockerfile: deployments/docker/Dockerfile
+    container_name: user_service
     environment:
       - RUNNING_ENVIRONMENT=deployment
     volumes:
@@ -11,22 +14,33 @@ services:
       - "80:80"
       - "50051:50051"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - user_network
   
   postgres:
     image: postgres:latest
+    container_name: user_service_postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 12345678
       POSTGRES_DB: user_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ../../postgres_data/:/var/lib/postgresql/data/
     networks:
       - user_network
 
   redis:
     image: redis:latest
+    container_name: user_service_redis
     networks:
       - user_network
 
