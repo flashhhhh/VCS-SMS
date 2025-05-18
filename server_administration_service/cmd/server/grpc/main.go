@@ -25,7 +25,7 @@ func main() {
 	logging.InitLogger("server_administration_service", serverAdministrationServiceLogPath, 10, 5, 30)
 
 	// Load running environment variable
-	environment := env.GetEnv("ENVIRONMENT", "local")
+	environment := env.GetEnv("RUNNING_ENVIRONMENT", "local")
 	logging.LogMessage("server_administration_service", "Running in "+environment+" environment", "INFO")
 
 	// Load environment variables from the .env file
