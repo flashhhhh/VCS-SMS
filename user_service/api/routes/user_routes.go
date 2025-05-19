@@ -7,8 +7,8 @@ import (
 )
 
 func RegisterRoutes(r *mux.Router, userHandler handler.UserHandler) {
-	r.HandleFunc("/user/create", userHandler.CreateUser).Methods("POST")
-	r.HandleFunc("/user/login", userHandler.Login).Methods("POST")
-	r.HandleFunc("/user/getUserByID", userHandler.GetUserByID).Methods("GET")
-	r.HandleFunc("/user/getAllUsers", userHandler.GetAllUsers).Methods("GET")
+	r.HandleFunc("/create", userHandler.CreateUser).Methods("POST")
+	r.HandleFunc("/login", userHandler.Login).Methods("POST")
+	r.HandleFunc("/getUserByID", userHandler.GetUserByID).Methods("GET")
+	r.HandleFunc("/getAllUsers", userHandler.GetAllUsers).Methods("GET")
 }
