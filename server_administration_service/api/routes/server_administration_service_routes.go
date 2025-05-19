@@ -9,10 +9,10 @@ import (
 )
 
 func RegisterRoutes(r *mux.Router, serverHandler handler.ServerHandler) {
-	r.Handle("/server/create", middlewares.UserMiddleware(http.HandlerFunc(serverHandler.CreateServer))).Methods("POST")
-	r.Handle("/server/view", middlewares.GuestMiddleware(http.HandlerFunc(serverHandler.ViewServers))).Methods("GET")
-	r.Handle("/server/update", middlewares.AdminMiddleware(http.HandlerFunc(serverHandler.UpdateServer))).Methods("PUT")
-	r.Handle("/server/delete", middlewares.AdminMiddleware(http.HandlerFunc(serverHandler.DeleteServer))).Methods("DELETE")
-	r.Handle("/server/import", middlewares.UserMiddleware(http.HandlerFunc(serverHandler.ImportServers))).Methods("POST")
-	r.Handle("/server/export", middlewares.AdminMiddleware(http.HandlerFunc(serverHandler.ExportServers))).Methods("GET")
+	r.Handle("/create", middlewares.UserMiddleware(http.HandlerFunc(serverHandler.CreateServer))).Methods("POST")
+	r.Handle("/view", middlewares.GuestMiddleware(http.HandlerFunc(serverHandler.ViewServers))).Methods("GET")
+	r.Handle("/update", middlewares.AdminMiddleware(http.HandlerFunc(serverHandler.UpdateServer))).Methods("PUT")
+	r.Handle("/delete", middlewares.AdminMiddleware(http.HandlerFunc(serverHandler.DeleteServer))).Methods("DELETE")
+	r.Handle("/import", middlewares.UserMiddleware(http.HandlerFunc(serverHandler.ImportServers))).Methods("POST")
+	r.Handle("/export", middlewares.AdminMiddleware(http.HandlerFunc(serverHandler.ExportServers))).Methods("GET")
 }
