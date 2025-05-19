@@ -2,15 +2,18 @@ package main
 
 import (
 	"os"
+	"os/signal"
 	"path/filepath"
-	"server_administration_service/infrastructure/grpc"
+	"server_administration_service/infrastructure/elasticsearch"
 	"server_administration_service/infrastructure/postgres"
 	"server_administration_service/infrastructure/redis"
 	"server_administration_service/internal/handler"
 	"server_administration_service/internal/repository"
 	"server_administration_service/internal/service"
+	"syscall"
 
 	"github.com/flashhhhh/pkg/env"
+	"github.com/flashhhhh/pkg/kafka"
 	"github.com/flashhhhh/pkg/logging"
 )
 
@@ -51,21 +54,41 @@ func main() {
 	}
 
 	// Initialize Redis client
-	redisAddress := env.GetEnv("SERVER_REDIS_HOST", "localhost") + 
-				":" + env.GetEnv("SERVER_REDIS_PORT", "6379")
+	redisAddress := env.GetEnv("SERVER_REDIS_HOST", "localhost") +
+			 ":" + env.GetEnv("SERVER_REDIS_PORT", "6379")
 	redis := redis.NewRedisClient(redisAddress)
 
-	// Initialize internal services
-	serverRepository := repository.NewServerRepository(db, redis, nil)
-	serverService := service.NewServerService(serverRepository)
-	serverHandler := handler.NewGrpcServerHandler(serverService)
-
-	// Synchronize Redis with DB
-	serverRepository.SyncServerStatus()
-
-	// Start gRPC server
-	grpcPort := env.GetEnv("SERVER_GRPC_ADMINISTRATION_PORT", "50051")
+	elasticSearchAddress := env.GetEnv("SERVER_ELASTICSEARCH_HOST", "localhost") +
+			 ":" + env.GetEnv("SERVER_ELASTICSEARCH_PORT", "9200")
+	es := elasticsearch.ConnectES(elasticSearchAddress)
 	
-	logging.LogMessage("server_administration_service", "Starting gRPC server on port "+grpcPort, "INFO")
-	grpc.StartGRPCServer(serverHandler, grpcPort)
+	// Initialize Kafka Consumer Group
+	brokers := []string{env.GetEnv("KAFKA_HOST", "localhost") + ":" + env.GetEnv("KAFKA_PORT", "9092")}
+	groupID := "server_administration_group"
+	topics := []string{"healthcheck_topic"}
+
+	logging.LogMessage("server_administration_service", "Connecting to Kafka brokers: "+brokers[0], "INFO")
+
+	consumerGroup, err := kafka.NewKafkaConsumerGroup(brokers, groupID, topics)
+	if err != nil {
+		logging.LogMessage("server_administration_service", "Failed to connect to Kafka: " + err.Error(), "FATAL")
+		logging.LogMessage("server_administration_service", "Exiting the program...", "FATAL")
+		os.Exit(1)
+	}
+
+	// Initialize internal services
+	serverRepository := repository.NewServerRepository(db, redis, es)
+	serverService := service.NewServerService(serverRepository)
+
+	// Start Kafka consumer
+	kafkaHandler := handler.NewServerConsumerHandler(serverService)
+	consumerGroup.StartConsuming(kafkaHandler)
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	<-sigs // Wait for interrupt
+	logging.LogMessage("server_administration_service", "Shutting down server...", "INFO")
+	consumerGroup.Stop()
+	redis.Close()
 }
