@@ -66,6 +66,7 @@ func main() {
 	}()
 
 	// Start the server
+	serverHost := env.GetEnv("MAIL_SERVICE_HOST", "localhost")
 	serverPort := env.GetEnv("MAIL_SERVICE_PORT", "10003")
 
 	r := mux.NewRouter()
@@ -78,10 +79,10 @@ func main() {
 		AllowCredentials: true,
 	}).Handler(r)
 
-	logging.LogMessage("mail_service", "Starting server on port "+serverPort, "INFO")
-	if err := http.ListenAndServe("localhost:"+serverPort, corsHandler); err != nil {
+	logging.LogMessage("mail_service", "Starting server on "+serverHost+":"+serverPort, "INFO")
+	if err := http.ListenAndServe(serverHost+":"+serverPort, corsHandler); err != nil {
 		logging.LogMessage("mail_service", "Failed to start server: "+err.Error(), "FATAL")
-		logging.LogMessage("mail_service", "Server stopped", "INFO")
+		logging.LogMessage("mail_service", "Exiting the program...", "FATAL")
 		os.Exit(1)
 	}
 
