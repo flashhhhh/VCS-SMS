@@ -9,5 +9,5 @@ import (
 )
 
 func RegisterRoutes(r *mux.Router, mailHandler handler.MailHandler) {
-	r.Handle("/mail/manual_send", middleware.AdminMiddleware(http.HandlerFunc(mailHandler.ManualSendEmail))).Methods("POST")
+	r.Handle("/manual_send", middleware.AdminMiddleware(http.HandlerFunc(mailHandler.ManualSendEmail))).Methods("POST")
 }
