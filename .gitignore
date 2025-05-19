@@ -30,4 +30,4 @@ go.work.sum
 */deployment_logs/
 
 # Persistent data
-server_administration_service/postgres_data
+*/postgres_data
