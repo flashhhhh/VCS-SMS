@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"server_administration_service/infrastructure/elasticsearch"
 	"server_administration_service/infrastructure/grpc"
 	"server_administration_service/infrastructure/postgres"
 	"server_administration_service/infrastructure/redis"
@@ -55,8 +56,12 @@ func main() {
 				":" + env.GetEnv("SERVER_REDIS_PORT", "6379")
 	redis := redis.NewRedisClient(redisAddress)
 
+	elasticSearchAddress := env.GetEnv("SERVER_ELASTICSEARCH_HOST", "localhost") +
+			 ":" + env.GetEnv("SERVER_ELASTICSEARCH_PORT", "9200")
+	es := elasticsearch.ConnectES(elasticSearchAddress)
+
 	// Initialize internal services
-	serverRepository := repository.NewServerRepository(db, redis, nil)
+	serverRepository := repository.NewServerRepository(db, redis, es)
 	serverService := service.NewServerService(serverRepository)
 	serverHandler := handler.NewGrpcServerHandler(serverService)
 
