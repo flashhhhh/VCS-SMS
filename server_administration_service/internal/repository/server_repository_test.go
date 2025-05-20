@@ -773,4 +773,17 @@ func TestSyncServerStatus(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 		assert.NoError(t, redisMock.ExpectationsWereMet())
 	})
+
+	t.Run("Database error", func(t *testing.T) {
+		// Mock DB query to return an error
+		mock.ExpectQuery(`SELECT (.+) FROM "servers"`).
+			WillReturnError(errors.New("database error"))
+
+		repo := repository.NewServerRepository(db, redisCli, esClient)
+		err := repo.SyncServerStatus()
+
+		assert.Error(t, err)
+		assert.Equal(t, "database error", err.Error())
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 }
