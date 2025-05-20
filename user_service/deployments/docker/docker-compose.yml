@@ -5,14 +5,21 @@ services:
     build:
       context: ../..
       dockerfile: deployments/docker/Dockerfile
-    container_name: user_service
     environment:
       - RUNNING_ENVIRONMENT=deployment
     volumes:
       - ../../deployment_logs/:/app/logs/
-    ports:
-      - "80:80"
-      - "50051:50051"
+    # ports:
+      # - "80:80"
+      # - "50051:50051"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.user.rule=PathPrefix(`/user`)"
+      - "traefik.http.routers.user.entrypoints=web"
+      - "traefik.http.services.user.loadbalancer.server.port=80"
+      - "traefik.http.routers.user.middlewares=user-stripprefix"
+      - "traefik.http.middlewares.user-stripprefix.stripprefix.prefixes=/user"
+      - "traefik.docker.network=traefik_network"
     depends_on:
       postgres:
         condition: service_healthy
@@ -20,6 +27,7 @@ services:
         condition: service_started
     networks:
       - user_network
+      - traefik_network
   
   postgres:
     image: postgres:latest
@@ -48,3 +56,6 @@ networks:
   user_network:
     driver: bridge
     name: user_network
+  traefik_network:
+    external: true
+    name: traefik_network

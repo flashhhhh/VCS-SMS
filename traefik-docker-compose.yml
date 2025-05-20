@@ -1,0 +1,20 @@
+services:
+  traefik:
+    image: traefik:latest
+    command:
+      - --api.insecure=true
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --entrypoints.web.address=:80
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - traefik_network
+
+networks:
+  traefik_network:
+    driver: bridge
+    name: traefik_network

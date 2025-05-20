@@ -10,9 +10,22 @@ services:
       - RUNNING_ENVIRONMENT=deployment
     volumes:
       - ../../deployment_logs/:/app/logs/
-    ports:
-      - "80:80"
-      - "50052:50052"
+    # ports:
+      # - "80:80"
+      # - "50052:50052"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server.rule=PathPrefix(`/server`)"
+      - "traefik.http.routers.server.entrypoints=web"
+      - "traefik.http.services.server.loadbalancer.server.port=80"
+      - "traefik.http.routers.server.middlewares=server-stripprefix"
+      - "traefik.http.middlewares.server-stripprefix.stripprefix.prefixes=/server"
+      - "traefik.docker.network=traefik_network" 
+    # If you don't specify which docker network traefik should use, it will forward requests in round robin fashion.
+    # This will affect when your application is running in >= 2 networks.
+    # So you must specify which network traefik should use.
+    # Ref: https://stackoverflow.com/questions/76646646/traefik-gateway-timeout-for-service-with-multiple-networks
+
     depends_on:
       postgres:
         condition: service_healthy
@@ -21,8 +34,9 @@ services:
       elasticsearch:
         condition: service_started
     networks:
-      - server_administation_network
+      - server_administration_network
       - kafka_network
+      - traefik_network
     
   postgres:
     image: postgres:latest
@@ -40,13 +54,13 @@ services:
       - ../../configs/postgres_init.sql:/docker-entrypoint-initdb.d/init.sql
       - ../../postgres_data/:/var/lib/postgresql/data/
     networks:
-      - server_administation_network
+      - server_administration_network
 
   redis:
     image: redis:latest
     container_name: server_administration_redis
     networks:
-      - server_administation_network
+      - server_administration_network
   
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
@@ -61,13 +75,16 @@ services:
     #   - ../../elasticsearch_data/:/usr/share/elasticsearch/data/
     mem_limit: 1g
     networks:
-      - server_administation_network
+      - server_administration_network
 
 networks:
-  server_administation_network:
+  server_administration_network:
     driver: bridge
     name: server_administration_network
   kafka_network:
     driver: bridge
     external: true
     name: kafka_network
+  traefik_network:
+    external: true
+    name: traefik_network

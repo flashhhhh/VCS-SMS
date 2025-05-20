@@ -8,17 +8,30 @@ services:
     container_name: mail_service
     environment:
       - RUNNING_ENVIRONMENT=deployment
-    ports:
-      - 80:80
+    # ports:
+    #   - 80:80
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mail.rule=PathPrefix(`/mail`)"
+      - "traefik.http.routers.mail.entrypoints=web"
+      - "traefik.http.services.mail.loadbalancer.server.port=80"
+      - "traefik.http.routers.mail.middlewares=mail-stripprefix"
+      - "traefik.http.middlewares.mail-stripprefix.stripprefix.prefixes=/mail"
+      - "traefik.docker.network=traefik_network" 
     volumes:
       - ../../deployment_logs/:/app/logs/
     networks:
       - mail_network
       - server_administration_network
+      - traefik_network
 
 networks:
   mail_network:
     driver: bridge
+    name: mail_network
   server_administration_network:
     external: true
     name: server_administration_network
+  traefik_network:
+    external: true
+    name: traefik_network
