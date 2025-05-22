@@ -11,9 +11,9 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o rest-server ./cmd/server/rest && \
-    CGO_ENABLED=0 go build -ldflags="-s -w" -o grpc-server ./cmd/server/grpc && \
-    CGO_ENABLED=0 go build -ldflags="-s -w" -o kafka-server ./cmd/server/kafka
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o rest-server ./cmd/server/rest
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o grpc-server ./cmd/server/grpc
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o kafka-server ./cmd/server/kafka
 
 # Runtime stage
 FROM alpine

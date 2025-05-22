@@ -11,12 +11,9 @@ services:
     volumes:
       - ../../deployment_logs/:/app/logs/
     networks:
-      - healthcheck_network
       - kafka_network
 
 networks:
-  healthcheck_network:
-    driver: bridge
   kafka_network:
     external: true
     name: kafka_network

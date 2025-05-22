@@ -13,60 +13,26 @@ services:
     ports:
       - "80:80"
       - "50052:50052"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-      elasticsearch:
-        condition: service_started
     networks:
       - server_administation_network
+      - postgres_network
+      - redis_network
+      - elasticsearch_network
       - kafka_network
-    
-  postgres:
-    image: postgres:latest
-    container_name: server_administration_postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 12345678
-      POSTGRES_DB: server_administration_db
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - ../../configs/postgres_init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ../../postgres_data/:/var/lib/postgresql/data/
-    networks:
-      - server_administation_network
-
-  redis:
-    image: redis:latest
-    container_name: server_administration_redis
-    networks:
-      - server_administation_network
-  
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
-    container_name: server_administration_elasticsearch
-    environment:
-      - cluster.name=lab-cluster
-      - node.name=node01
-      - xpack.security.enabled=false
-      - discovery.type=single-node
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    # volumes:
-    #   - ../../elasticsearch_data/:/usr/share/elasticsearch/data/
-    mem_limit: 1g
-    networks:
-      - server_administation_network
 
 networks:
   server_administation_network:
     driver: bridge
     name: server_administration_network
+  postgres_network:
+    external: true
+    name: postgres_network
+  redis_network:
+    external: true
+    name: redis_network
+  elasticsearch_network:
+    external: true
+    name: elasticsearch_network
   kafka_network:
     driver: bridge
     external: true
