@@ -8,7 +8,6 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -53,11 +52,7 @@ func TestCreateUser_Success(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	// Create a new UserRepository instance
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
-	userRepo := NewUserRepository(db, redisClient)
+	userRepo := NewUserRepository(db)
 
 	userID, err := userRepo.CreateUser(context.Background(), user)
 
@@ -89,11 +84,7 @@ func TestCreateUser_Failure(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 
-	// Create a new UserRepository instance
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
-	userRepo := NewUserRepository(db, redisClient)
+	userRepo := NewUserRepository(db)
 
 	userID, err := userRepo.CreateUser(context.Background(), user)
 
@@ -144,11 +135,7 @@ func TestLogin_Success(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "password", "name", "email", "role"}).
 		AddRow(user.ID, user.Username, user.Password, user.Name, user.Email, user.Role))
 	
-	// Create a new UserRepository instance
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
-	userRepo := NewUserRepository(db, redisClient)
+	userRepo := NewUserRepository(db)
 
 	// Call the Login method
 	loggedInUser, err := userRepo.Login(context.Background(), user.Username)
@@ -174,11 +161,7 @@ func TestLogin_Failure(t *testing.T) {
 		WithArgs("nonexistentuser", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "password", "name", "email", "role"}))
 	
-	// Create a new UserRepository instance
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
-	userRepo := NewUserRepository(db, redisClient)
+	userRepo := NewUserRepository(db)
 
 	// Call the Login method with a non-existent username
 	loggedInUser, err := userRepo.Login(context.Background(), "nonexistentuser")
@@ -210,11 +193,7 @@ func TestGetUserByID_Success(t *testing.T){
 		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "password", "name", "email", "role"}).
 		AddRow(expectedUser.ID, expectedUser.Username, expectedUser.Password, expectedUser.Name, expectedUser.Email, expectedUser.Role))
 
-	// Create a new UserRepository instance
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
-	userRepo := NewUserRepository(db, redisClient)
+	userRepo := NewUserRepository(db)
 
 	// Call the GetUserByID method
 	user, err := userRepo.GetUserByID(context.Background(), expectedUser.ID)
@@ -241,11 +220,7 @@ func TestGetUserByID_NotFound(t *testing.T) {
 		WithArgs("nonexistent-id", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "password", "name", "email", "role"}))
 
-	// Create a new UserRepository instance
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
-	userRepo := NewUserRepository(db, redisClient)
+	userRepo := NewUserRepository(db)
 
 	// Call the GetUserByID method with a non-existent ID
 	user, err := userRepo.GetUserByID(context.Background(), "nonexistent-id")
@@ -286,11 +261,7 @@ func TestGetAllUsers_Success(t *testing.T) {
 		AddRow(expectedUsers[0].ID, expectedUsers[0].Username, expectedUsers[0].Password, expectedUsers[0].Name, expectedUsers[0].Email, expectedUsers[0].Role).
 		AddRow(expectedUsers[1].ID, expectedUsers[1].Username, expectedUsers[1].Password, expectedUsers[1].Name, expectedUsers[1].Email, expectedUsers[1].Role))
 	
-	// Create a new UserRepository instance
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
-	userRepo := NewUserRepository(db, redisClient)
+	userRepo := NewUserRepository(db)
 
 	// Call the GetAllUsers method
 	users, err := userRepo.GetAllUsers(context.Background())
@@ -319,11 +290,7 @@ func TestGetAllUsers_Failure(t *testing.T) {
 	mock.ExpectQuery(`SELECT \* FROM "users"`).
 		WillReturnError(errors.New("database error"))
 
-	// Create a new UserRepository instance
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
-	userRepo := NewUserRepository(db, redisClient)
+	userRepo := NewUserRepository(db)
 
 	// Call the GetAllUsers method
 	users, err := userRepo.GetAllUsers(context.Background())

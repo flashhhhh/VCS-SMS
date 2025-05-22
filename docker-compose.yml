@@ -36,6 +36,60 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345678
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ./postgres_init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - postgres_network
+  
+  redis:
+    image: redis:latest
+    networks:
+      - redis_network
+  
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    environment:
+      - cluster.name=lab-cluster
+      - node.name=node01
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    mem_limit: 1g
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    networks:
+      - elasticsearch_network
+  
+  traefik:
+    image: traefik:latest
+    command:
+      - --api.insecure=true
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --entrypoints.web.address=:80
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - traefik_network
+
+volumes:
+  postgres_data:
+  esdata:
 
 networks:
   external_network:
@@ -44,3 +98,15 @@ networks:
   kafka_network:
     driver: bridge
     name: kafka_network
+  postgres_network:
+    driver: bridge
+    name: postgres_network
+  redis_network:
+    driver: bridge
+    name: redis_network
+  elasticsearch_network:
+    driver: bridge
+    name: elasticsearch_network
+  traefik_network:
+    driver: bridge
+    name: traefik_network

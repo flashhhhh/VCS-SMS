@@ -5,7 +5,6 @@ import (
 	"user_service/internal/domain"
 
 	"github.com/flashhhhh/pkg/logging"
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -18,15 +17,13 @@ type UserRepository interface {
 
 type userRepository struct {
 	db *gorm.DB
-	redis *redis.Client
 }
 
-func NewUserRepository(db *gorm.DB, redis *redis.Client) UserRepository {
+func NewUserRepository(db *gorm.DB) UserRepository {
 	logging.LogMessage("user_service", "Initializing UserRepository", "INFO")
 
 	return &userRepository{
 		db: db,
-		redis: redis,
 	}
 }
 
