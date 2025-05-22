@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"user_service/infrastructure/grpc"
 	"user_service/infrastructure/postgres"
-	"user_service/infrastructure/redis"
 	grpchandler "user_service/internal/grpc_handler"
 	"user_service/internal/repository"
 	"user_service/internal/service"
@@ -46,12 +45,8 @@ func main() {
 	// Migrate the database
 	postgres.Migrate(db)
 
-	// Redis connection
-	redisAddress := env.GetEnv("REDIS_HOST", "localhost") + ":" + env.GetEnv("REDIS_PORT", "6379")
-	redis := redis.NewRedisClient(redisAddress)
-
 	// Initialize internal services
-	userRepository := repository.NewUserRepository(db, redis)
+	userRepository := repository.NewUserRepository(db)
 	userService := service.NewUserService(userRepository)
 	userHandler := grpchandler.NewGrpcUserHandler(userService)
 
