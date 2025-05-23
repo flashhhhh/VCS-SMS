@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: user-service
+  labels:
+    app: user-service
+spec:
+  containers:
+    - name: user-service
+      image: flashhhhh/user_service
+      env:
+        - name: RUNNING_ENVIRONMENT
+          value: deployment
