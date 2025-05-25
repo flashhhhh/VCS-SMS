@@ -7,7 +7,7 @@ import (
 	"github.com/flashhhhh/pkg/logging"
 )
 
-func UserMiddleware(next http.Handler) http.Handler {
+func AdminMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get token from request header bearer
 		authHeader := r.Header.Get("Authorization")
@@ -25,13 +25,14 @@ func UserMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Check if the user is an admin or user
-		if data["role"] != "admin" && data["role"] != "user" {
+		// Check if the user is an admin
+		if data["role"] != "admin" {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
 		
-		logging.LogMessage("server_administration_service", "User is an admin or user", "INFO")
+		logging.LogMessage("server_administration_service", "User is an admin", "INFO")
+		
 		next.ServeHTTP(w, r)
 	})
 }

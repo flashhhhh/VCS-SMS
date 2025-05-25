@@ -11,6 +11,9 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(255) NOT NULL
 );
 
+INSERT INTO users (id, username, password, name, email, role) VALUES
+    (gen_random_uuid(), 'admin', '$2a$10$6smDl/of0VnSPLw.1qFUgurMGLBaEg.FTLvuXtCTlv8fMQT1dVC2C', 'Admin', 'admin@gmail.com', 'admin');
+
 CREATE DATABASE server_administration_db;
 
 \c server_administration_db;
