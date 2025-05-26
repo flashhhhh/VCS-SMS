@@ -4,11 +4,10 @@ services:
     ports:
       - "8090:8080"
     environment:
-      - SWAGGER_JSON=/openapi.yaml
+      - SWAGGER_CONFIG_URL=/swagger-config.yaml
     volumes:
-      - ./docs/openapi.yaml:/openapi.yaml
-    networks:
-      - external_network
+      - ./docs:/usr/share/nginx/html/docs
+      - ./swagger-config.yaml:/usr/share/nginx/html/swagger-config.yaml
   
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
