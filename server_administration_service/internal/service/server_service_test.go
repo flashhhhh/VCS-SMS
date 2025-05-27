@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"bytes"
 	"errors"
 	"server_administration_service/internal/domain"
 	"server_administration_service/internal/dto"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/mock"
+	"github.com/xuri/excelize/v2"
 )
 
 type mockServerRepo struct {
@@ -22,6 +24,9 @@ func (m *mockServerRepo) CreateServer(server *domain.Server) (int, error) {
 
 func (m *mockServerRepo) CreateServers(servers []domain.Server) ([]domain.Server, []domain.Server, error) {
 	args := m.Called(servers)
+	if args.Get(0) == nil || args.Get(1) == nil {
+		return nil, nil, args.Error(2)
+	}
 	return args.Get(0).([]domain.Server), args.Get(1).([]domain.Server), args.Error(2)
 }
 
@@ -334,6 +339,95 @@ func TestAddServerStatus(t *testing.T) {
 	}
 	mockRepo.AssertExpectations(t)
 }
+
+func createTestExcelBuffer() []byte {
+	f := excelize.NewFile()
+	_ = f.SetSheetRow("Sheet1", "A1", &[]interface{}{"ServerID", "ServerName", "Status", "IPv4", "Port"})
+	_ = f.SetSheetRow("Sheet1", "A2", &[]interface{}{"srv-1", "Server One", "active", "192.168.1.1", 8080})
+	var buf bytes.Buffer
+	_ = f.Write(&buf)
+	return buf.Bytes()
+}
+
+func TestImportServers_Success(t *testing.T) {
+	mockRepo := new(mockServerRepo)
+	svc := service.NewServerService(mockRepo)
+
+	testBuffer := createTestExcelBuffer()
+	expectedServers := []domain.Server{{
+		ServerID:   "srv-1",
+		ServerName: "Server One",
+		Status:     "active",
+		IPv4:       "192.168.1.1",
+		Port:       8080,
+	}}
+
+	mockRepo.On("CreateServers", expectedServers).
+		Return(expectedServers, []domain.Server{}, nil)
+
+	inserted, nonInserted, err := svc.ImportServers(testBuffer)
+
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if len(inserted) != 1 {
+		t.Errorf("Expected 1 inserted server, got %d", len(inserted))
+	}
+	if inserted[0].ServerID != "srv-1" {
+		t.Errorf("Expected inserted server ID 'srv-1', got %s", inserted[0].ServerID)
+	}
+	if len(nonInserted) != 0 {
+		t.Errorf("Expected 0 non-inserted servers, got %d", len(nonInserted))
+	}
+
+	mockRepo.AssertExpectations(t)
+}
+
+func TestImportServers_Failure(t *testing.T) {
+	mockRepo := new(mockServerRepo)
+	svc := service.NewServerService(mockRepo)
+
+	testBuffer := createTestExcelBuffer()
+	expectedServers := []domain.Server{{
+		ServerID:   "srv-1",
+		ServerName: "Server One",
+		Status:     "active",
+		IPv4:       "192.168.1.1",
+		Port:       8080,
+	}}
+	mockRepo.On("CreateServers", expectedServers).
+		Return(nil, nil, errors.New("failed to insert servers"))
+
+	_, _, err := svc.ImportServers(testBuffer)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+
+	mockRepo.AssertExpectations(t)
+}
+
+// func CreateWrongExcelBuffer() []byte {
+// 	f := excelize.NewFile()
+// 	_ = f.SetSheetRow("Sheet1", "A1", &[]interface{}{"ServerID", "ServerName", "Status", "IPv4", "Port"})
+	
+// 	var buf bytes.Buffer
+// 	_ = f.Write(&buf)
+// 	return buf.Bytes()	
+// }
+
+// func TestImportServers_WrongFormat(t *testing.T) {
+// 	mockRepo := new(mockServerRepo)
+// 	svc := service.NewServerService(mockRepo)
+
+// 	testBuffer := CreateWrongExcelBuffer()
+
+// 	_, _, err := svc.ImportServers(testBuffer)
+// 	if err == nil {
+// 		t.Errorf("Expected error for wrong format, got nil")
+// 	}
+
+// 	mockRepo.AssertExpectations(t)
+// }
 
 func TestExportServers_Success(t *testing.T) {
 	mockRepo := new(mockServerRepo)

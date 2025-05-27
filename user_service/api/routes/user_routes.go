@@ -1,14 +1,16 @@
 package api
 
 import (
+	"net/http"
+	"user_service/api/middlewares"
 	"user_service/internal/handler"
 
 	"github.com/gorilla/mux"
 )
 
 func RegisterRoutes(r *mux.Router, userHandler handler.UserHandler) {
-	r.HandleFunc("/create", userHandler.CreateUser).Methods("POST")
+	r.Handle("/create", middlewares.AdminMiddleware(http.HandlerFunc(userHandler.CreateUser))).Methods("POST")
 	r.HandleFunc("/login", userHandler.Login).Methods("POST")
-	r.HandleFunc("/getUserByID", userHandler.GetUserByID).Methods("GET")
-	r.HandleFunc("/getAllUsers", userHandler.GetAllUsers).Methods("GET")
+	r.Handle("/getUserByID", middlewares.UserMiddleware(http.HandlerFunc(userHandler.GetUserByID))).Methods("GET")
+	r.Handle("/getAllUsers", middlewares.AdminMiddleware(http.HandlerFunc(userHandler.GetAllUsers))).Methods("GET")
 }
