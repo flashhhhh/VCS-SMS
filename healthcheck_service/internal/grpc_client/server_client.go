@@ -26,7 +26,7 @@ func (h *healthCheckClient) GetAllAddresses() (*pb.AddressesResponse, error) {
 	)
 
 	if err != nil {
-		panic("Failed to get all addresses: " + err.Error())
+		return nil, err
 	}
 
 	return resp, nil

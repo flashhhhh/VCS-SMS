@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/flashhhhh/pkg/env"
@@ -52,13 +53,48 @@ func main() {
 
 	client := grpcclient.NewHealthCheckClient(grpcClient)
 
+	var maxConcurrencyStr = env.GetEnv("MAX_CONCURRENCY", "15")
+	var maxConcurrency, maxConcurrencyErr = strconv.Atoi(maxConcurrencyStr)
+	if (maxConcurrencyErr != nil) {
+		maxConcurrency = 20
+	}
+	logging.LogMessage("healthcheck_service", "Max concurrency set to "+strconv.Itoa(maxConcurrency), "INFO")
+
+	var delaySecondsStr = env.GetEnv("DELAY_SECONDS", "60")
+	var delaySeconds, delaySecondsErr = strconv.Atoi(delaySecondsStr)
+	if (delaySecondsErr != nil) {
+		delaySeconds = 60
+	}
+	logging.LogMessage("healthcheck_service", "Delay seconds set to "+strconv.Itoa(delaySeconds), "INFO")
+
+	semaphore := make(chan struct{}, maxConcurrency)
+
+	/*
+		MAIN LOOP OF HEALTHCHECK SERVICE
+	*/
+
 	for {
 		addressesResponse, err := client.GetAllAddresses()
 		if err != nil {
-			panic(err)
-		}							
+			logging.LogMessage("healthcheck_service", "Failed to get addresses from gRPC server: "+err.Error(), "ERROR")
+			logging.LogMessage("healthcheck_service", "Retrying in " + strconv.Itoa(delaySeconds) + " seconds...", "ERROR")
+			
+			time.Sleep(time.Duration(delaySeconds) * time.Second)
+			continue
+		}
+		logging.LogMessage("healthcheck_service", "Received addresses from gRPC server", "INFO")
+
+		var wg sync.WaitGroup
+
 		for _, address := range addressesResponse.Addresses {
+			wg.Add(1)
+
+			semaphore <- struct{}{} // Acquire a semaphore slot
+
 			go func (address *pb.AddressInfo) {
+				defer wg.Done()
+				defer func() { <-semaphore }() // Release the semaphore slot
+
 				ID := int(address.Id)
 				serverAddress := address.Address
 				
@@ -83,14 +119,17 @@ func main() {
 				err = kafkaProducer.SendMessage(topic, message)
 
 				if err != nil {
-					panic(err)
+					logging.LogMessage("healthcheck_service", "Failed to send health check result of server "+strconv.Itoa(ID)+" to Kafka topic "+topic+": "+err.Error(), "ERROR")
+					return
 				}
 
 				logging.LogMessage("healthcheck_service", "Sent health check result of server " + strconv.Itoa(ID) + " to Kafka topic "+topic, "INFO")
 			}(address)
 		}
 
-		logging.LogMessage("healthcheck_service", "Sleep for 60 seconds...", "INFO")
-		time.Sleep(60 * time.Second)
+		logging.LogMessage("healthcheck_service", "Sleep for " + strconv.Itoa(delaySeconds) + " seconds...", "INFO")
+		time.Sleep(time.Duration(delaySeconds) * time.Second)
+
+		wg.Wait() // Wait for all goroutines to finish
 	}
 }
