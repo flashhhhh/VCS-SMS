@@ -195,7 +195,7 @@ func (r *serverRepository) DeleteServer(serverID string) error {
 	}
 
 	// Delete the server
-	if err := r.db.Delete(&domain.Server{}, serverID).Error; err != nil {
+	if err := r.db.Where("server_id = ?", serverID).Delete(&domain.Server{}).Error; err != nil {
 		return err
 	}
 
