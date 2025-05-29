@@ -95,7 +95,7 @@ func (s *serverService) ImportServers(buf []byte) ([]domain.Server, []domain.Ser
 		return nil, nil, err
 	}
 
-	rows, err := f.GetRows("Sheet1")
+	rows, err := f.GetRows("Servers")
 	if err != nil || len(rows) < 2 {
 		logging.LogMessage("server_administration_service", "Failed to get rows from Excel file: "+err.Error(), "ERROR")
 		return nil, nil, err

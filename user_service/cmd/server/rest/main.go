@@ -38,11 +38,11 @@ func main() {
 	}
 
 	// Connect to the database
-	dsn := "host=" + env.GetEnv("POSTGRES_HOST", "localhost") +
-		" user=" + env.GetEnv("POSTGRES_USER", "postgres") +
-		" password=" + env.GetEnv("POSTGRES_PASSWORD", "password") +
-		" dbname=" + env.GetEnv("POSTGRES_NAME", "user_service") +
-		" port=" + env.GetEnv("POSTGRES_PORT", "5432") +
+	dsn := "host=" + env.GetEnv("PG_HOST", "localhost") +
+		" user=" + env.GetEnv("PG_USER", "postgres") +
+		" password=" + env.GetEnv("PG_PASSWORD", "password") +
+		" dbname=" + env.GetEnv("PG_NAME", "user_service") +
+		" port=" + env.GetEnv("PG_PORT", "5432") +
 		" sslmode=disable"
 	db := postgres.ConnectDB(dsn)
 

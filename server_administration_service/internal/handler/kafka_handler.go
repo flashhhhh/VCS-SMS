@@ -27,8 +27,18 @@ func (h ServerConsumerHandler) Cleanup(sarama.ConsumerGroupSession) error {
 }
 
 func (h ServerConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	// Create a semaphore channel to limit concurrent goroutines
+	const maxWorkers = 10
+	semaphore := make(chan struct{}, maxWorkers)
+	
 	for message := range claim.Messages() {
+		// Acquire semaphore
+		semaphore <- struct{}{}
+		
 		go func(message *sarama.ConsumerMessage) {
+			// Release semaphore when done
+			defer func() { <-semaphore }()
+			
 			logging.LogMessage("server_administration_service", "Received message: " + string(message.Value), "INFO")
 			session.MarkMessage(message, "")
 
